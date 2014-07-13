@@ -163,7 +163,7 @@ public class GridPanel extends JPanel {
         }
         System.out.println("NO MOVES!");
 
-        JOptionPane.showInternalMessageDialog(GUI.FRAME.getContentPane(), "YOU LOSE MOTHER FUCKER", "Damn", JOptionPane.ERROR_MESSAGE);
+        JOptionPane.showInternalMessageDialog(GUI.FRAME.getContentPane(), "You Lose!", "Oops", JOptionPane.ERROR_MESSAGE);
         reset();
 
     }
