@@ -36,12 +36,9 @@ public class NumPanel extends JPanel {
         int bevelHeight = (int) (BEVEL_PROPORTION * getHeight());
         g.fillRoundRect(bevelWidth, bevelHeight, getWidth() - (2 * bevelWidth), getHeight() - (2 * bevelHeight), 10, 10);
 
+        // do the text
         g.setColor(Color.BLACK);
-
-        g.drawRect(0, 0, getWidth(), getHeight());
-
         Font font = new Font(FONT.getName(), Font.PLAIN, getHeight() / 3);
-
         int width = getFontMetrics(font).stringWidth(text);
 
         g.setFont(font);
