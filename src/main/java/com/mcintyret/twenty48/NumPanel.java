@@ -1,9 +1,6 @@
 package com.mcintyret.twenty48;
 
 import javax.swing.*;
-import javax.swing.border.BevelBorder;
-import javax.swing.border.LineBorder;
-import javax.swing.plaf.ColorUIResource;
 import java.awt.*;
 
 /**
@@ -37,7 +34,7 @@ public class NumPanel extends JPanel {
         g.setColor(color);
         int bevelWidth = (int) (BEVEL_PROPORTION * getWidth());
         int bevelHeight = (int) (BEVEL_PROPORTION * getHeight());
-        g.fillRect(bevelWidth, bevelHeight, getWidth() - (2 * bevelWidth), getHeight() - (2 * bevelHeight));
+        g.fillRoundRect(bevelWidth, bevelHeight, getWidth() - (2 * bevelWidth), getHeight() - (2 * bevelHeight), 10, 10);
 
         g.setColor(Color.BLACK);
 
