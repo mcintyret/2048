@@ -12,6 +12,10 @@ import java.awt.*;
  */
 public class NumPanel extends JPanel {
 
+    private static final Color BEVEL_COLOR = Color.GRAY;
+
+    private static final double BEVEL_PROPORTION = 1D / 12D;
+
     private static final Font FONT = new JLabel().getFont();
 
     private final String text;
@@ -25,8 +29,15 @@ public class NumPanel extends JPanel {
 
     @Override
     public void paint(Graphics g) {
-        g.setColor(color);
+        // do the bevel
+        g.setColor(BEVEL_COLOR);
         g.fillRect(0, 0, getWidth(), getHeight());
+
+        // do the fill
+        g.setColor(color);
+        int bevelWidth = (int) (BEVEL_PROPORTION * getWidth());
+        int bevelHeight = (int) (BEVEL_PROPORTION * getHeight());
+        g.fillRect(bevelWidth, bevelHeight, getWidth() - (2 * bevelWidth), getHeight() - (2 * bevelHeight));
 
         g.setColor(Color.BLACK);
 
@@ -37,6 +48,7 @@ public class NumPanel extends JPanel {
         int width = getFontMetrics(font).stringWidth(text);
 
         g.setFont(font);
+        // TODO: tweak so the text is centred.
         g.drawString(text, (getWidth() - width) / 2, getHeight() /2);
     }
 }
