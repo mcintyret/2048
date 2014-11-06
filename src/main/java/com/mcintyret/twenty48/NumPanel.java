@@ -40,9 +40,9 @@ public class NumPanel extends JPanel {
         g.setColor(Color.BLACK);
         Font font = new Font(FONT.getName(), Font.PLAIN, getHeight() / 3);
         int width = getFontMetrics(font).stringWidth(text);
+        int height = getFontMetrics(font).getAscent();
 
         g.setFont(font);
-        // TODO: tweak so the text is centred.
-        g.drawString(text, (getWidth() - width) / 2, getHeight() /2);
+        g.drawString(text, (getWidth() - width) / 2, (getHeight() + height) /2);
     }
 }
