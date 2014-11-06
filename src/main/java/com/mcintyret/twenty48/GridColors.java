@@ -8,7 +8,7 @@ import java.awt.*;
  */
 public class GridColors {
 
-    private static final Color[] COLORS = {Color.WHITE, Color.YELLOW, Color.GREEN, Color.CYAN, Color.BLUE, Color.MAGENTA,
+    private static final Color[] COLORS = {Color.LIGHT_GRAY, Color.YELLOW, Color.GREEN, Color.CYAN, Color.BLUE, Color.MAGENTA,
             Color.RED, Color.PINK, Color.ORANGE, Color.LIGHT_GRAY, Color.DARK_GRAY, Color.BLACK};
 
     static Color getColor(int val) {

@@ -1,6 +1,7 @@
 package com.mcintyret.twenty48;
 
 import javax.swing.*;
+import javax.swing.border.BevelBorder;
 import javax.swing.border.LineBorder;
 import javax.swing.plaf.ColorUIResource;
 import java.awt.*;
@@ -20,7 +21,6 @@ public class NumPanel extends JPanel {
     public NumPanel(int val) {
         this.color = GridColors.getColor(val);
         this.text = val == 0 ? "" : Integer.toString(val);
-        setBorder(new LineBorder(Color.BLACK));
     }
 
     @Override
