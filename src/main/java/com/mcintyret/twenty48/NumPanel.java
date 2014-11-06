@@ -11,7 +11,7 @@ public class NumPanel extends JPanel {
 
     private static final Color BEVEL_COLOR = Color.GRAY;
 
-    private static final double BEVEL_PROPORTION = 1D / 12D;
+    private static final double BEVEL_PROPORTION = 1D / 20D;
 
     private static final Font FONT = new JLabel().getFont();
 
