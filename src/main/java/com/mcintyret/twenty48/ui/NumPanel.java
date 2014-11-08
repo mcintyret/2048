@@ -1,4 +1,4 @@
-package com.mcintyret.twenty48;
+package com.mcintyret.twenty48.ui;
 
 import javax.swing.*;
 import java.awt.*;

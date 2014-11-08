@@ -1,4 +1,4 @@
-package com.mcintyret.twenty48;
+package com.mcintyret.twenty48.ui;
 
 import com.mcintyret.twenty48.core.Grid;
 
@@ -7,7 +7,6 @@ import java.awt.*;
 import java.awt.event.ActionEvent;
 import java.awt.event.KeyEvent;
 import java.util.*;
-import java.util.List;
 
 /**
  * User: tommcintyre
