@@ -1,15 +1,18 @@
 package com.mcintyret.twenty48.ui;
 
 import com.mcintyret.twenty48.core.Grid;
+import com.mcintyret.twenty48.core.Movement;
 
 import javax.swing.*;
 import java.awt.*;
 import java.awt.event.ActionEvent;
 import java.awt.event.KeyEvent;
 import java.util.*;
+import java.util.List;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
+import java.util.function.Supplier;
 
 /**
  * User: tommcintyre
@@ -62,31 +65,31 @@ public class GridPanel extends JPanel {
         updateScoreLabel();
     }
 
-    private void registerKeystroke(String name, int keyEvent, Runnable mover) {
+    private void registerKeystroke(String name, int keyEvent, Supplier<List<Movement>> mover) {
         getInputMap().put(KeyStroke.getKeyStroke(keyEvent, 0), name);
         getActionMap().put(name, new AbstractAction() {
             @Override
             public void actionPerformed(ActionEvent e) {
                 updateExec.execute(() -> {
-                    mover.run(); // This calls one of the grid::move* methods
+                    List<Movement>  movements = mover.get(); // This calls one of the grid::move* methods
                     updateGrid();
-                    while (grid.moveInProgress()) {
-                        grid.continueMove();
-                        updateGrid();
+
+                    if (!movements.isEmpty()) {
+                        addNewBlocksAfterMove();
                     }
-                    afterMove();
+                    checkAvailableMoves();
                 });
             }
         });
     }
 
-    private void afterMove() {
+
+    private void addNewBlocksAfterMove() {
         int newBlocks = RNG.nextInt(3);
         if (newBlocks > 0) {
             grid.addNewBlocks(newBlocks);
         }
         updateGrid();
-        checkAvailableMoves();
     }
 
     private void checkAvailableMoves() {

@@ -1,6 +1,8 @@
 package com.mcintyret.twenty48.core;
 
+import java.awt.*;
 import java.util.*;
+import java.util.List;
 
 /**
  * User: tommcintyre
@@ -12,17 +14,11 @@ public class Grid {
 
     private final int[][] numbers;
 
-    private final CellState[][] states;
-
-    private final List<OrientatedPoint> lastNewPoints = new ArrayList<>();
-
-    private final List<OrientatedPoint> lastCombinedPoints = new ArrayList<>();
-
     private final int rows;
 
     private final int cols;
 
-    private Orientation currentMoveOrientation;
+    private Orientation currentOrientation;
 
     public Grid() {
         this(DEFAULT_SIZE);
@@ -36,88 +32,71 @@ public class Grid {
         this.rows = rows;
         this.cols = cols;
         numbers = new int[rows][cols];
-        states = new CellState[rows][cols];
+    }
+
+    public List<Movement> moveLeft() {
+        return move(Orientation.ZERO);
+    }
+
+    public List<Movement> moveUp() {
+        return move(Orientation.NINETY);
+    }
+
+    public List<Movement> moveRight() {
+        return move(Orientation.ONE_EIGHTY);
+    }
+
+    public List<Movement> moveDown() {
+        return move(Orientation.TWO_SEVENTY);
+    }
+
+    private List<Movement> move(Orientation orientation) {
+        currentOrientation = orientation;
+        List<Movement> moves = new ArrayList<>();
 
         for (int i = 0; i < rows; i++) {
-            Arrays.fill(states[i], CellState.EMPTY);
-        }
-    }
+            int lastMerge = -1;
+            for (int j = 1; j < cols; j++) {
+                int val = getVal(i, j);
 
-    public void moveLeft() {
-        clearSpecialPoints();
-        move(Orientation.ZERO);
-    }
-
-    public void moveUp() {
-        clearSpecialPoints();
-        move(Orientation.NINETY);
-    }
-
-    public void moveRight() {
-        clearSpecialPoints();
-        move(Orientation.ONE_EIGHTY);
-    }
-
-    public void moveDown() {
-        clearSpecialPoints();
-        move(Orientation.TWO_SEVENTY);
-    }
-
-    public void continueMove() {
-        move(currentMoveOrientation);
-    }
-
-    private void move(Orientation orientation) {
-        currentMoveOrientation = orientation;
-
-        boolean changed = false;
-        for (int i = 0; i < rows; i++) {
-            for (int j = 0; j < cols - 1; j++) {
-                CellState firstState = getState(orientation, i, j);
-                if (firstState == CellState.EMPTY) {
-                    // shift everything along by one
-                    changed |= shift(orientation, i, j);
-                    break;
-                } else if (firstState == CellState.NORMAL && getState(orientation, i, j + 1) == CellState.NORMAL) {
-                    int num = getNumber(orientation, i, j);
-                    if (num == getNumber(orientation, i, j + 1)) {
-                        changed = true;
-                        setNumber(orientation, num << 1, i, j);
-                        setState(orientation, CellState.COMBINED, i, j);
-
-                        setNumber(orientation, 0, i, j + 1);
-                        setState(orientation, CellState.EMPTY, i, j + 1);
-
-                        lastCombinedPoints.add(new OrientatedPoint(i, j, orientation));
-
-                        shift(orientation, i, j + 1);
+                if (val > 0) {
+                    boolean moved = false;
+                    int end = 0;
+                    for (int k = j - 1; k >= 0; k--) {
+                        int val2 = getVal(i, k);
+                        if (val == val2 && lastMerge != k) {
+                            // Cool, we found a merge
+                            moved = true;
+                            val *= 2;
+                            end = k;
+                            lastMerge = k;
+                            break;
+                        } else if (val2 == 0) {
+                            moved = true;
+                        } else {
+                            end = k + 1;
+                            break;
+                        }
+                    }
+                    if (moved) {
+                        setVal(0, i, j);
+                        setVal(val, i, end);
+                        moves.add(new Movement(
+                            new Point(
+                                orientation.transformI(i, j, rows, cols),
+                                orientation.transformJ(i, j, rows, cols)
+                            ),
+                            new Point(
+                                orientation.transformI(i, end, rows, cols),
+                                orientation.transformJ(i, end, rows, cols)
+                            )
+                        ));
                     }
                 }
             }
         }
 
-        if (!changed) {
-            currentMoveOrientation = null;
-        }
-    }
-
-    private boolean shift(Orientation orientation, int i, int j) {
-        boolean changed = false;
-        for (int k = j + 1; k < cols; k++) {
-            CellState secondState = getState(orientation, i, k);
-            if (secondState != CellState.EMPTY) {
-                changed = true;
-                setState(orientation, secondState, i, k - 1);
-                setState(orientation, CellState.EMPTY, i, k);
-                setNumber(orientation, getNumber(orientation, i, k), i, k - 1);
-                setNumber(orientation, 0, i, k);
-            }
-        }
-        return changed;
-    }
-
-    public boolean moveInProgress() {
-        return currentMoveOrientation != null;
+        return moves;
     }
 
     public int getRows() {
@@ -128,29 +107,14 @@ public class Grid {
         return cols;
     }
 
-    private CellState getState(Orientation o, int i, int j) {
-        return o.get(states, rows, cols, i, j);
+    private int getVal(int i, int j) {
+        return currentOrientation.get(numbers, rows, cols, i, j);
     }
 
-    private CellState setState(Orientation o, CellState state, int i, int j) {
-        return o.set(states, state, rows, cols, i, j);
+    private int setVal(int val, int i, int j) {
+        return currentOrientation.set(numbers, val, rows, cols, i, j);
     }
 
-    private int getNumber(Orientation o, int i, int j) {
-        return o.get(numbers, rows, cols, i, j);
-    }
-
-    private int setNumber(Orientation o, int val, int i, int j) {
-        return o.set(numbers, val, rows, cols, i, j);
-    }
-
-    public CellState getState(int i, int j) {
-        return getState(Orientation.DEFAULT_ORIENTATION, i, j);
-    }
-
-    public int getNumber(int i, int j) {
-        return getNumber(Orientation.DEFAULT_ORIENTATION, i, j);
-    }
 
     // TODO: make the below stuff nicer
 
@@ -158,57 +122,40 @@ public class Grid {
 
     public void addNewBlocks(int n) {
 
-        List<OrientatedPoint> free = newPointList();
+        List<Point> free = newPointList();
 
         for (int i = 0; i < numbers.length; i++) {
             if (numbers[i][0] == 0) {
-                free.add(new OrientatedPoint(i, 0));
+                free.add(new Point(i, 0));
             }
             if (numbers[i][numbers.length - 1] == 0) {
-                free.add(new OrientatedPoint(i, numbers.length - 1));
+                free.add(new Point(i, numbers.length - 1));
             }
         }
 
         for (int j = 1; j < numbers.length - 1; j++) {
             if (numbers[0][j] == 0) {
-                free.add(new OrientatedPoint(0, j));
+                free.add(new Point(0, j));
             }
 
             if (numbers[numbers.length - 1][j] == 0) {
-                free.add(new OrientatedPoint(numbers.length - 1, j));
+                free.add(new Point(numbers.length - 1, j));
             }
         }
 
         Collections.shuffle(free);
 
-        Iterator<OrientatedPoint> it = free.iterator();
+        Iterator<Point> it = free.iterator();
+        List<Point> added = new ArrayList<>(n);
 
-        setNewPoint(it.next());
-
-        while (it.hasNext() && --n > 0) {
-            setNewPoint(it.next());
+        while (it.hasNext() && n-- > 0) {
+            Point p = it.next();
+            added.add(p);
+            numbers[p.x][p.y] = RNG.nextBoolean() ? 2 : 4;
         }
     }
 
-    private void setNewPoint(OrientatedPoint point) {
-        setState(point.getOrientation(), CellState.NEW, point.getX(), point.getY());
-        setNumber(point.getOrientation(), RNG.nextBoolean() ? 2 : 4, point.getX(), point.getY());
-        lastNewPoints.add(point);
-    }
-
-    private void clearSpecialPoints() {
-        clearSpecialPoints(lastNewPoints);
-        clearSpecialPoints(lastCombinedPoints);
-    }
-
-    private void clearSpecialPoints(List<OrientatedPoint> points) {
-        for (OrientatedPoint p : points) {
-            setState(p.getOrientation(), CellState.NORMAL, p.getX(), p.getY());
-        }
-        points.clear();
-    }
-
-    private List<OrientatedPoint> newPointList() {
+    private List<Point> newPointList() {
         int size = 2 * (rows + rows - 2); // TODO: ??
         return new ArrayList<>(size);
     }
@@ -239,5 +186,9 @@ public class Grid {
         }
         System.out.println();
         System.out.println();
+    }
+
+    public int getNumber(int i, int j) {
+        return numbers[i][j];
     }
 }
