@@ -1,6 +1,5 @@
 package com.mcintyret.twenty48.core;
 
-import java.awt.*;
 import java.util.*;
 import java.util.List;
 
@@ -120,7 +119,7 @@ public class Grid {
 
     private static final Random RNG = new Random();
 
-    public void addNewBlocks(int n) {
+    public List<Point> addNewBlocks(int n) {
 
         List<Point> free = newPointList();
 
@@ -153,6 +152,8 @@ public class Grid {
             added.add(p);
             numbers[p.x][p.y] = RNG.nextBoolean() ? 2 : 4;
         }
+
+        return added;
     }
 
     private List<Point> newPointList() {

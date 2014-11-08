@@ -24,7 +24,7 @@ public class GUI {
 
         FRAME.setDefaultCloseOperation(WindowConstants.EXIT_ON_CLOSE);
 
-        FRAME.getContentPane().add(new GridPanel());
+        FRAME.getContentPane().add(new GamePanel());
 
         EventQueue.invokeLater(() -> FRAME.setVisible(true));
     }

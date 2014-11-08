@@ -1,7 +1,5 @@
 package com.mcintyret.twenty48.core;
 
-import java.awt.*;
-
 /**
  * User: tommcintyre
  * Date: 11/8/14
