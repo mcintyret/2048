@@ -7,6 +7,9 @@ import java.awt.*;
 import java.awt.event.ActionEvent;
 import java.awt.event.KeyEvent;
 import java.util.*;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.TimeUnit;
 
 /**
  * User: tommcintyre
@@ -15,8 +18,15 @@ import java.util.*;
 public class GridPanel extends JPanel {
 
     private static final Random RNG = new Random();
+    private static final int INITIAL_BLOCKS = 2;
+
+    private static final int FRAMES_PER_SECOND = 35;
+
+    private static final long SLEEP_MILLIS_PER_FRAME = TimeUnit.SECONDS.toMillis(1) / FRAMES_PER_SECOND;
 
     private Grid grid;
+
+    private final ExecutorService updateExec = Executors.newSingleThreadExecutor();
 
     private final JPanel gridPanel = new JPanel();
 
@@ -36,7 +46,6 @@ public class GridPanel extends JPanel {
         add(topPanel, BorderLayout.NORTH);
         topPanel.add(scoreLabel);
 
-
         registerKeystroke("left", KeyEvent.VK_LEFT, grid::moveLeft);
         registerKeystroke("right", KeyEvent.VK_RIGHT, grid::moveRight);
         registerKeystroke("up", KeyEvent.VK_UP, grid::moveUp);
@@ -46,7 +55,7 @@ public class GridPanel extends JPanel {
     private void reset() {
         grid = new Grid();
 
-        grid.addNewBlocks(2);
+        grid.addNewBlocks(INITIAL_BLOCKS);
 
         updateGrid();
         score = 0;
@@ -58,13 +67,15 @@ public class GridPanel extends JPanel {
         getActionMap().put(name, new AbstractAction() {
             @Override
             public void actionPerformed(ActionEvent e) {
-                mover.run(); // This calls one of the grid::move* methods
-                updateGrid();
-                while (grid.moveInProgress()) {
-                    grid.continueMove();
+                updateExec.execute(() -> {
+                    mover.run(); // This calls one of the grid::move* methods
                     updateGrid();
-                }
-                afterMove();
+                    while (grid.moveInProgress()) {
+                        grid.continueMove();
+                        updateGrid();
+                    }
+                    afterMove();
+                });
             }
         });
     }
@@ -88,8 +99,6 @@ public class GridPanel extends JPanel {
 
     }
 
-
-
     private void updateGrid() {
         gridPanel.removeAll();
         for (int i = 0; i < grid.getRows(); i++) {
@@ -97,10 +106,14 @@ public class GridPanel extends JPanel {
                 gridPanel.add(new NumPanel(grid.getNumber(i, j)));
             }
         }
-        updateUI();
+        revalidate();
+        repaint();
+        try {
+            Thread.sleep(SLEEP_MILLIS_PER_FRAME);
+        } catch (InterruptedException e) {
+
+        }
     }
-
-
 
     private void updateScoreLabel() {
         scoreLabel.setText("Score: " + score);

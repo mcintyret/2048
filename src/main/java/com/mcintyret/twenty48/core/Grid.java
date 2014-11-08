@@ -68,8 +68,6 @@ public class Grid {
     }
 
     private void move(Orientation orientation) {
-        System.out.println("Moving " + orientation);
-        printGrid();
         currentMoveOrientation = orientation;
 
         boolean changed = false;
@@ -101,11 +99,9 @@ public class Grid {
         if (!changed) {
             currentMoveOrientation = null;
         }
-        printGrid();
     }
 
     private boolean shift(Orientation orientation, int i, int j) {
-        System.out.println("Shifting");
         boolean changed = false;
         for (int k = j + 1; k < cols; k++) {
             CellState secondState = getState(orientation, i, k);
@@ -117,7 +113,6 @@ public class Grid {
                 setNumber(orientation, 0, i, k);
             }
         }
-        printGrid();
         return changed;
     }
 
