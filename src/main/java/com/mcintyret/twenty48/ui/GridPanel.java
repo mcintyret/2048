@@ -14,14 +14,17 @@ import java.awt.Font;
 import java.awt.Graphics;
 import java.awt.event.ActionEvent;
 import java.awt.event.KeyEvent;
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Random;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
-import java.util.concurrent.TimeUnit;
 import java.util.function.Supplier;
+
+import static com.mcintyret.twenty48.Utils.sleepUninterruptibly;
+import static java.util.Collections.emptyList;
 
 /**
  * User: tommcintyre
@@ -29,17 +32,35 @@ import java.util.function.Supplier;
  */
 public class GridPanel extends JPanel {
 
-    private static final int BEVEL_PROPORTION = 20;
+    private static final long MOVE_TIME_MILLIS = 200;
+
+    private static final int FRAMES_PER_SECOND = 35;
+
+    private static final long FRAMES_PER_MOVE = (long) (FRAMES_PER_SECOND * (MOVE_TIME_MILLIS / 1000D));
+
+    private static final int BEVEL_PROPORTION = 18;
+
+    private static final int INITIAL_BLOCKS = 2;
+
+    private static final long SLEEP_MILLIS_PER_FRAME = MOVE_TIME_MILLIS / FRAMES_PER_MOVE;
 
     private static final Font FONT = new JLabel().getFont();
+
+    private static final float INITIAL_NEW_BLOCK_SCALE = 0.2F;
 
     private int rows = 4;
 
     private int cols = 4;
 
-    private final Map<Point, Integer> cells = new HashMap<>();
+    private final Map<FloatPoint, ScaledValue> cells = new HashMap<>();
 
     private final GamePanel gamePanel;
+
+    private static final Random RNG = new Random();
+
+    private Grid grid;
+
+    private final ExecutorService updateExec = Executors.newSingleThreadExecutor();
 
     public GridPanel(GamePanel gamePanel) {
         this.gamePanel = gamePanel;
@@ -72,36 +93,31 @@ public class GridPanel extends JPanel {
         }
 
         // Draw filled Cells
-        Font font = new Font(FONT.getName(), Font.PLAIN, (int) (cellHeight / 3));
-        for (Map.Entry<Point, Integer> entry : cells.entrySet()) {
-            g.setColor(GridColors.getColor(entry.getValue()));
+        for (Map.Entry<FloatPoint, ScaledValue> entry : cells.entrySet()) {
+            ScaledValue value = entry.getValue();
 
-            float startY = bevelHeight + (entry.getKey().x * (cellHeight + bevelHeight));
-            float startX = bevelWidth + (entry.getKey().y * (cellWidth + bevelWidth));
+            float scaledCellHeight = cellHeight * value.scale;
+            float scaledCellWidth = cellWidth * value.scale;
 
-            g.fillRoundRect((int) startX, (int) startY, (int) cellWidth, (int) cellHeight, 10, 10);
+            Font font = new Font(FONT.getName(), Font.PLAIN, (int) (scaledCellHeight / 3));
+            g.setColor(GridColors.getColor(value.value));
 
-            String text = Integer.toString(entry.getValue());
+            FloatPoint point = entry.getKey();
+            float startY = bevelHeight + (point.x * (cellHeight + bevelHeight)) + (cellHeight * (1 - value.scale)) / 2;
+            float startX = bevelWidth + (point.y * (cellWidth + bevelWidth)) + (cellWidth * (1 - value.scale)) / 2;
+
+            g.fillRoundRect((int) startX, (int) startY, (int) scaledCellWidth, (int) scaledCellHeight, 10, 10);
+
+            String text = Integer.toString(value.value);
             g.setColor(Color.BLACK);
 
             int textWidth = getFontMetrics(font).stringWidth(text);
             int textHeight = getFontMetrics(font).getAscent();
 
             g.setFont(font);
-            g.drawString(text, (int) (startX + (cellWidth - textWidth) / 2), (int) (startY + (cellHeight + textHeight) / 2));
+            g.drawString(text, (int) (startX + (scaledCellWidth - textWidth) / 2), (int) (startY + (scaledCellHeight + textHeight) / 2));
         }
     }
-
-    private static final Random RNG = new Random();
-    private static final int INITIAL_BLOCKS = 2;
-
-    private static final int FRAMES_PER_SECOND = 35;
-
-    private static final long SLEEP_MILLIS_PER_FRAME = TimeUnit.SECONDS.toMillis(1) / FRAMES_PER_SECOND;
-
-    private Grid grid;
-
-    private final ExecutorService updateExec = Executors.newSingleThreadExecutor();
 
 
     private void reset() {
@@ -113,70 +129,205 @@ public class GridPanel extends JPanel {
         registerKeystroke("up", KeyEvent.VK_UP, grid::moveUp);
         registerKeystroke("down", KeyEvent.VK_DOWN, grid::moveDown);
 
-        addNewBlocks(INITIAL_BLOCKS);
+        updateExec.execute(() -> {
+            animateAddedAndCombined(emptyList(), addNewBlocks(INITIAL_BLOCKS));
+            updateGrid();
+        });
 
-        updateGrid();
         gamePanel.reset();
     }
 
-    private void registerKeystroke(String name, int keyEvent, Supplier<java.util.List<Movement>> mover) {
+    private void registerKeystroke(String name, int keyEvent, Supplier<List<Movement>> mover) {
         getInputMap().put(KeyStroke.getKeyStroke(keyEvent, 0), name);
         getActionMap().put(name, new AbstractAction() {
             @Override
             public void actionPerformed(ActionEvent e) {
                 updateExec.execute(() -> {
                     List<Movement> movements = mover.get(); // This calls one of the grid::move* methods
-
-                    for (Movement movement : movements) {
-                        int val = cells.remove(movement.getFrom());
-
-                        Integer existing = cells.put(movement.getTo(), val);
-                        if (existing != null) {
-                            if (existing != val) {
-                                throw new AssertionError("Illegal combination: " + val + " and " + existing);
-                            }
-                            int newVal = val << 1;
-                            gamePanel.incrementScore(newVal);
-                            cells.put(movement.getTo(), newVal);
-                        }
-                    }
-
-                    updateGrid();
-
                     if (!movements.isEmpty()) {
-                        addNewBlocksAfterMove();
+                        List<MovementInfo> movementInfos = new ArrayList<>(movements.size());
+                        movements.forEach(m -> movementInfos.add(new MovementInfo(m)));
+
+                        List<FloatPoint> combined = new ArrayList<>();
+
+                        for (int i = 0; i < FRAMES_PER_MOVE; i++) {
+                            for (MovementInfo movementInfo : movementInfos) {
+                                ScaledValue val = cells.remove(movementInfo.getLastPoint());
+
+                                FloatPoint next = movementInfo.getNextPoint();
+//                                System.out.println(next);
+                                ScaledValue existing = cells.put(next, val);
+                                if (existing != null) {
+                                    if (existing.value != val.value) {
+                                        throw new AssertionError("Illegal combination: " + val + " and " + existing);
+                                    }
+                                    ScaledValue newVal = new ScaledValue(val.value << 1, INITIAL_NEW_BLOCK_SCALE);
+                                    gamePanel.incrementScore(newVal.value);
+                                    cells.put(next, newVal);
+                                    combined.add(next);
+                                }
+                            }
+                            updateGrid();
+                            sleepUninterruptibly(SLEEP_MILLIS_PER_FRAME);
+                        }
+
+                        List<FloatPoint> added = addNewBlocksAfterMove();
+
+                        animateAddedAndCombined(combined, added);
+
+                        checkAvailableMoves();
+                        gamePanel.onMoveEnd();
                     }
-                    checkAvailableMoves();
-                    gamePanel.onMoveEnd();
                 });
             }
         });
     }
 
+    private void animateAddedAndCombined(List<FloatPoint> combined, List<FloatPoint> added) {
+        if (!added.isEmpty() || !combined.isEmpty()) {
+            SizeChangeInfo addedSci = new SizeChangeInfo(INITIAL_NEW_BLOCK_SCALE, 1.0F);
+            SizeChangeInfo combinedSci = new SizeChangeInfo(INITIAL_NEW_BLOCK_SCALE, 1.2F); // TODO: needs to be dynamic, or at least based on bezel?
 
-    private void addNewBlocksAfterMove() {
-        int newBlocks = RNG.nextInt(3);
-        if (newBlocks > 0) {
-            addNewBlocks(newBlocks);
+            for (int i = 0; i < FRAMES_PER_MOVE; i++) {
+                combined.forEach(fp -> cells.computeIfPresent(fp, (p, sv) -> combinedSci.nextScaledValue(sv)));
+                added.forEach(fp -> cells.computeIfPresent(fp, (p, sv) -> addedSci.nextScaledValue(sv)));
+
+                updateGrid();
+                sleepUninterruptibly(SLEEP_MILLIS_PER_FRAME);
+            }
+
+            // finally set all the combined back to normal size
+            combined.forEach(fp -> cells.computeIfPresent(fp, (p, sv) -> new ScaledValue(sv.value)));
+            updateGrid();
         }
     }
 
-    private void addNewBlocks(int n) {
+
+    private List<FloatPoint> addNewBlocksAfterMove() {
+        int newBlocks = RNG.nextInt(3);
+        if (newBlocks > 0) {
+            return addNewBlocks(newBlocks);
+        }
+        return emptyList();
+    }
+
+    private List<FloatPoint> addNewBlocks(int n) {
         List<Point> points = grid.addNewBlocks(n);
-        for (Point point : points) {
-            if (cells.put(point, grid.getNumber(point.x, point.y)) != null) {
-                throw new AssertionError("Added to non-empty cell:  " + point);
+
+        List<FloatPoint> floatPoints = new ArrayList<>(points.size());
+        for (Point p : points) {
+            FloatPoint fp = new FloatPoint(p);
+            if (cells.put(new FloatPoint(p), new ScaledValue(grid.getNumber(p.x, p.y), INITIAL_NEW_BLOCK_SCALE)) != null) {
+                throw new AssertionError("Added to non-empty cell: " + p);
             }
+            floatPoints.add(fp);
         }
         updateGrid();
+        return floatPoints;
     }
 
     private void checkAvailableMoves() {
         if (!grid.hasAvailableMoves()) {
-            System.out.println("NO MOVES!");
-
             JOptionPane.showInternalMessageDialog(GUI.FRAME.getContentPane(), "You Lose!", "Oops", JOptionPane.ERROR_MESSAGE);
             reset();
+        }
+    }
+
+    private static final class FloatPoint {
+        private static final float EPSILON = 0.00001F;
+        private final float x;
+        private final float y;
+
+        private FloatPoint(float x, float y) {
+            if (Math.abs(x - Math.round(x)) < EPSILON) {
+                x = Math.round(x);
+            }
+            if (Math.abs(y - Math.round(y)) < EPSILON) {
+                y = Math.round(y);
+            }
+
+            this.x = x;
+            this.y = y;
+        }
+
+        private FloatPoint(Point point) {
+            this(point.x, point.y);
+        }
+
+        @Override
+        public boolean equals(Object o) {
+            if (this == o) return true;
+            if (o == null || getClass() != o.getClass()) return false;
+
+            FloatPoint that = (FloatPoint) o;
+
+            if (Float.compare(that.x, x) != 0) return false;
+            if (Float.compare(that.y, y) != 0) return false;
+
+            return true;
+        }
+
+        @Override
+        public int hashCode() {
+            int result = (x != +0.0f ? Float.floatToIntBits(x) : 0);
+            result = 31 * result + (y != +0.0f ? Float.floatToIntBits(y) : 0);
+            return result;
+        }
+
+        @Override
+        public String toString() {
+            return "[" + x + ", " + y + "]";
+        }
+    }
+
+
+    private static final class MovementInfo {
+        protected Supplier<FloatPoint> nextPointSupplier;
+
+        protected FloatPoint lastPoint;
+
+        private MovementInfo(Movement movement) {
+            lastPoint = new FloatPoint(movement.getFrom());
+            if (movement.getFrom().x != movement.getTo().x) {
+                float d = Math.abs(movement.getFrom().x - movement.getTo().x);
+                float perFrame = d / FRAMES_PER_MOVE;
+                if (movement.getFrom().x > movement.getTo().x) {
+                    nextPointSupplier = () -> new FloatPoint(lastPoint.x - perFrame, lastPoint.y);
+                } else {
+                    nextPointSupplier = () -> new FloatPoint(lastPoint.x + perFrame, lastPoint.y);
+                }
+            } else {
+                float d = Math.abs(movement.getFrom().y - movement.getTo().y);
+                float perFrame = d / FRAMES_PER_MOVE;
+                if (movement.getFrom().y > movement.getTo().y) {
+                    nextPointSupplier = () -> new FloatPoint(lastPoint.x, lastPoint.y - perFrame);
+                } else {
+                    nextPointSupplier = () -> new FloatPoint(lastPoint.x, lastPoint.y + perFrame);
+                }
+            }
+        }
+
+        protected FloatPoint getLastPoint() {
+            return lastPoint;
+        }
+
+        protected FloatPoint getNextPoint() {
+            FloatPoint next = nextPointSupplier.get();
+            lastPoint = next;
+            return next;
+        }
+    }
+
+    private static class SizeChangeInfo {
+
+        private final float increment;
+
+        protected SizeChangeInfo(float startScale, float endScale) {
+            this.increment = (endScale - startScale) / FRAMES_PER_MOVE;
+        }
+
+        public ScaledValue nextScaledValue(ScaledValue in) {
+            return new ScaledValue(in.value, in.scale + increment);
         }
     }
 
@@ -185,4 +336,19 @@ public class GridPanel extends JPanel {
         repaint();
     }
 
+    private static class ScaledValue {
+
+        private final int value;
+
+        private final float scale;
+
+        private ScaledValue(int value, float scale) {
+            this.value = value;
+            this.scale = scale;
+        }
+
+        private ScaledValue(int value) {
+            this(value, 1.0F);
+        }
+    }
 }

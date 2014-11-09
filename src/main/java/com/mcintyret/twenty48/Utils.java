@@ -26,4 +26,17 @@ public class Utils {
         return set;
     }
 
+    public static void sleepUninterruptibly(long millis) {
+        long targetTime = System.currentTimeMillis() + millis;
+        do {
+            long toSleep = targetTime - System.currentTimeMillis();
+            try {
+                Thread.sleep(toSleep);
+                break;
+            } catch (InterruptedException e) {
+                Thread.interrupted();
+            }
+        } while (true);
+    }
+
 }
