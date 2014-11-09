@@ -9,7 +9,6 @@ import javax.swing.JLabel;
 import javax.swing.JOptionPane;
 import javax.swing.JPanel;
 import javax.swing.KeyStroke;
-import java.awt.Color;
 import java.awt.Font;
 import java.awt.Graphics;
 import java.awt.event.ActionEvent;
@@ -24,6 +23,8 @@ import java.util.concurrent.Executors;
 import java.util.function.Supplier;
 
 import static com.mcintyret.twenty48.Utils.sleepUninterruptibly;
+import static com.mcintyret.twenty48.ui.GridColors.getCellColor;
+import static com.mcintyret.twenty48.ui.GridColors.getFontColor;
 import static java.util.Collections.emptyList;
 
 /**
@@ -32,25 +33,19 @@ import static java.util.Collections.emptyList;
  */
 public class GridPanel extends JPanel {
 
-    private static final long MOVE_TIME_MILLIS = 200;
+    private static final long MOVE_TIME_MILLIS = 150;
 
     private static final int FRAMES_PER_SECOND = 35;
 
     private static final long FRAMES_PER_MOVE = (long) (FRAMES_PER_SECOND * (MOVE_TIME_MILLIS / 1000D));
 
-    private static final int BEVEL_PROPORTION = 18;
+    private static final float BEVEL_PROPORTION = 5.8F;
 
     private static final int INITIAL_BLOCKS = 2;
 
     private static final long SLEEP_MILLIS_PER_FRAME = MOVE_TIME_MILLIS / FRAMES_PER_MOVE;
 
-    private static final Font FONT = new JLabel().getFont();
-
     private static final float INITIAL_NEW_BLOCK_SCALE = 0.2F;
-
-    private int rows = 4;
-
-    private int cols = 4;
 
     private final Map<FloatPoint, ScaledValue> cells = new HashMap<>();
 
@@ -69,8 +64,11 @@ public class GridPanel extends JPanel {
 
     @Override
     public void paint(Graphics g) {
-        // fill with bevel color
-        g.setColor(Color.GRAY);
+        int rows = grid.getRows();
+        int cols = grid.getCols();
+
+        // fill with bezel color
+        g.setColor(GridColors.BEZEL_COLOR);
         g.fillRect(0, 0, getWidth(), getHeight());
 
         // Calculate the proportions
@@ -83,7 +81,7 @@ public class GridPanel extends JPanel {
         float cellHeight = BEVEL_PROPORTION * bevelHeight;
 
         // Draw empty cells
-        g.setColor(Color.LIGHT_GRAY);
+        g.setColor(GridColors.EMPTY_CELL_COLOR);
         for (int i = 0; i < rows; i++) {
             float startY = bevelHeight + (i * (cellHeight + bevelHeight));
             for (int j = 0; j < cols; j++) {
@@ -99,8 +97,7 @@ public class GridPanel extends JPanel {
             float scaledCellHeight = cellHeight * value.scale;
             float scaledCellWidth = cellWidth * value.scale;
 
-            Font font = new Font(FONT.getName(), Font.PLAIN, (int) (scaledCellHeight / 3));
-            g.setColor(GridColors.getColor(value.value));
+            g.setColor(getCellColor(value.value));
 
             FloatPoint point = entry.getKey();
             float startY = bevelHeight + (point.x * (cellHeight + bevelHeight)) + (cellHeight * (1 - value.scale)) / 2;
@@ -108,8 +105,9 @@ public class GridPanel extends JPanel {
 
             g.fillRoundRect((int) startX, (int) startY, (int) scaledCellWidth, (int) scaledCellHeight, 10, 10);
 
+            Font font = new Font("Arial", Font.BOLD, (int) (scaledCellHeight / 2));
+            g.setColor(getFontColor(value.value));
             String text = Integer.toString(value.value);
-            g.setColor(Color.BLACK);
 
             int textWidth = getFontMetrics(font).stringWidth(text);
             int textHeight = getFontMetrics(font).getAscent();
