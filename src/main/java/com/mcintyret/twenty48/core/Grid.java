@@ -150,7 +150,7 @@ public class Grid {
         while (it.hasNext() && n-- > 0) {
             Point p = it.next();
             added.add(p);
-            numbers[p.x][p.y] = RNG.nextBoolean() ? 2 : 4;
+            numbers[p.x][p.y] = RNG.nextInt(8) == 0 ? 4 : 2;
         }
 
         return added;

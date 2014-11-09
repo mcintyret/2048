@@ -5,7 +5,6 @@ import com.mcintyret.twenty48.core.Movement;
 import com.mcintyret.twenty48.core.Point;
 
 import javax.swing.AbstractAction;
-import javax.swing.JLabel;
 import javax.swing.JOptionPane;
 import javax.swing.JPanel;
 import javax.swing.KeyStroke;
@@ -202,11 +201,7 @@ public class GridPanel extends JPanel {
 
 
     private List<FloatPoint> addNewBlocksAfterMove() {
-        int newBlocks = RNG.nextInt(3);
-        if (newBlocks > 0) {
-            return addNewBlocks(newBlocks);
-        }
-        return emptyList();
+        return addNewBlocks(1);
     }
 
     private List<FloatPoint> addNewBlocks(int n) {
