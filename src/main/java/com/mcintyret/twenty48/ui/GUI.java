@@ -1,7 +1,13 @@
 package com.mcintyret.twenty48.ui;
 
-import javax.swing.*;
-import java.awt.*;
+import java.awt.Dimension;
+import java.awt.EventQueue;
+
+import javax.swing.JFrame;
+import javax.swing.WindowConstants;
+
+import com.mcintyret.twenty48.bot.Bot;
+import com.mcintyret.twenty48.core.Grid;
 
 /**
  * User: tommcintyre
@@ -24,9 +30,15 @@ public class GUI {
 
         FRAME.setDefaultCloseOperation(WindowConstants.EXIT_ON_CLOSE);
 
-        FRAME.getContentPane().add(new GamePanel());
+        Grid grid = new Grid();
+        Bot bot = new Bot(grid);
+        GamePanel gamePanel = new GamePanel();
+        GridPanel gridPanel = new GridPanel(gamePanel, grid);
+
+        FRAME.getContentPane().add(gamePanel);
 
         EventQueue.invokeLater(() -> FRAME.setVisible(true));
+        bot.run();
     }
 
 }

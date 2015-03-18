@@ -1,8 +1,9 @@
 package com.mcintyret.twenty48.ui;
 
+import java.awt.BorderLayout;
+
 import javax.swing.JLabel;
 import javax.swing.JPanel;
-import java.awt.BorderLayout;
 
 /**
  * User: tommcintyre
@@ -20,8 +21,6 @@ public class GamePanel extends JPanel {
         JPanel topPanel = new JPanel();
         add(topPanel, BorderLayout.NORTH);
         topPanel.add(scoreLabel);
-
-        add(new GridPanel(this), BorderLayout.CENTER);
     }
 
     public void incrementScore(int val) {

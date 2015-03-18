@@ -6,6 +6,8 @@ import java.util.HashSet;
 import java.util.Random;
 import java.util.Set;
 
+import com.mcintyret.twenty48.core.Grid;
+
 /**
  * User: tommcintyre
  * Date: 6/29/14
@@ -16,6 +18,18 @@ public class Utils {
 
     public static Point randomPoint(int xMax, int yMax) {
         return new Point(RNG.nextInt(xMax), RNG.nextInt(yMax));
+    }
+
+    public static int getFreeSpaces(Grid grid) {
+        int num = 0;
+        for (int r = 0; r < grid.getRows(); r++) {
+            for (int c = 0; c < grid.getCols(); c++) {
+                if (grid.getNumber(r, c) == 0) {
+                    num++;
+                }
+            }
+        }
+        return num;
     }
 
     public static Collection<Point> getNRandomPoints(int xMax, int yMax, int n) {

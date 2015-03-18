@@ -1,7 +1,11 @@
 package com.mcintyret.twenty48.core;
 
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.Iterator;
 import java.util.List;
+import java.util.Random;
+import java.util.function.Consumer;
 
 /**
  * User: tommcintyre
@@ -17,7 +21,11 @@ public class Grid {
 
     private final int cols;
 
+    private int score;
+
     private Orientation currentOrientation;
+
+    private Consumer<List<Movement>> moveListener;
 
     public Grid() {
         this(DEFAULT_SIZE);
@@ -33,23 +41,23 @@ public class Grid {
         numbers = new int[rows][cols];
     }
 
-    public List<Movement> moveLeft() {
-        return move(Orientation.ZERO);
+    public void moveLeft() {
+        move(Orientation.ZERO);
     }
 
-    public List<Movement> moveUp() {
-        return move(Orientation.NINETY);
+    public void moveUp() {
+        move(Orientation.NINETY);
     }
 
-    public List<Movement> moveRight() {
-        return move(Orientation.ONE_EIGHTY);
+    public void moveRight() {
+        move(Orientation.ONE_EIGHTY);
     }
 
-    public List<Movement> moveDown() {
-        return move(Orientation.TWO_SEVENTY);
+    public void moveDown() {
+        move(Orientation.TWO_SEVENTY);
     }
 
-    private List<Movement> move(Orientation orientation) {
+    private void move(Orientation orientation) {
         currentOrientation = orientation;
         List<Movement> moves = new ArrayList<>();
 
@@ -67,6 +75,7 @@ public class Grid {
                             // Cool, we found a merge
                             moved = true;
                             val *= 2;
+                            score += val;
                             end = k;
                             lastMerge = k;
                             break;
@@ -95,7 +104,9 @@ public class Grid {
             }
         }
 
-        return moves;
+        if (moveListener != null) {
+            moveListener.accept(moves);
+        }
     }
 
     public int getRows() {
@@ -191,5 +202,23 @@ public class Grid {
 
     public int getNumber(int i, int j) {
         return numbers[i][j];
+    }
+
+    public Grid copy() {
+        Grid newGrid = new Grid(rows, cols);
+        newGrid.currentOrientation = this.currentOrientation;
+
+        for (int r = 0; r < rows; r++) {
+            System.arraycopy(this.numbers[r], 0, newGrid.numbers[r], 0, cols);
+        }
+        return newGrid;
+    }
+
+    public int getScore() {
+        return score;
+    }
+
+    public void setMoveListener(Consumer<List<Movement>> moveListener) {
+        this.moveListener = moveListener;
     }
 }

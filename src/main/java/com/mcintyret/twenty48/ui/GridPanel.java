@@ -1,13 +1,11 @@
 package com.mcintyret.twenty48.ui;
 
-import com.mcintyret.twenty48.core.Grid;
-import com.mcintyret.twenty48.core.Movement;
-import com.mcintyret.twenty48.core.Point;
+import static com.mcintyret.twenty48.Utils.sleepUninterruptibly;
+import static com.mcintyret.twenty48.ui.GridColors.getCellColor;
+import static com.mcintyret.twenty48.ui.GridColors.getFontColor;
+import static java.util.Collections.emptyList;
 
-import javax.swing.AbstractAction;
-import javax.swing.JOptionPane;
-import javax.swing.JPanel;
-import javax.swing.KeyStroke;
+import java.awt.BorderLayout;
 import java.awt.Font;
 import java.awt.Graphics;
 import java.awt.event.ActionEvent;
@@ -16,15 +14,18 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.Random;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.function.Supplier;
 
-import static com.mcintyret.twenty48.Utils.sleepUninterruptibly;
-import static com.mcintyret.twenty48.ui.GridColors.getCellColor;
-import static com.mcintyret.twenty48.ui.GridColors.getFontColor;
-import static java.util.Collections.emptyList;
+import javax.swing.AbstractAction;
+import javax.swing.JOptionPane;
+import javax.swing.JPanel;
+import javax.swing.KeyStroke;
+
+import com.mcintyret.twenty48.core.Grid;
+import com.mcintyret.twenty48.core.Movement;
+import com.mcintyret.twenty48.core.Point;
 
 /**
  * User: tommcintyre
@@ -32,7 +33,7 @@ import static java.util.Collections.emptyList;
  */
 public class GridPanel extends JPanel {
 
-    private static final long MOVE_TIME_MILLIS = 150;
+    private static final long MOVE_TIME_MILLIS = 30;
 
     private static final int FRAMES_PER_SECOND = 35;
 
@@ -50,15 +51,18 @@ public class GridPanel extends JPanel {
 
     private final GamePanel gamePanel;
 
-    private static final Random RNG = new Random();
-
     private Grid grid;
 
     private final ExecutorService updateExec = Executors.newSingleThreadExecutor();
 
-    public GridPanel(GamePanel gamePanel) {
+    public GridPanel(GamePanel gamePanel, Grid grid) {
         this.gamePanel = gamePanel;
-        reset();
+        gamePanel.add(this, BorderLayout.CENTER);
+        setGrid(grid);
+    }
+
+    public GridPanel(GamePanel gamePanel) {
+        this(gamePanel, new Grid());
     }
 
     @Override
@@ -118,13 +122,54 @@ public class GridPanel extends JPanel {
 
 
     private void reset() {
-        grid = new Grid();
+        setGrid(new Grid());
+    }
+
+    public void setGrid(Grid grid) {
+        this.grid = grid;
         cells.clear();
 
         registerKeystroke("left", KeyEvent.VK_LEFT, grid::moveLeft);
         registerKeystroke("right", KeyEvent.VK_RIGHT, grid::moveRight);
         registerKeystroke("up", KeyEvent.VK_UP, grid::moveUp);
         registerKeystroke("down", KeyEvent.VK_DOWN, grid::moveDown);
+
+        grid.setMoveListener((movements) -> {
+            if (!movements.isEmpty()) {
+                List<MovementInfo> movementInfos = new ArrayList<>(movements.size());
+                movements.forEach(m -> movementInfos.add(new MovementInfo(m)));
+
+                List<FloatPoint> combined = new ArrayList<>();
+
+                for (int i = 0; i < FRAMES_PER_MOVE; i++) {
+                    for (MovementInfo movementInfo : movementInfos) {
+                        ScaledValue val = cells.remove(movementInfo.getLastPoint());
+
+                        FloatPoint next = movementInfo.getNextPoint();
+                        //                                System.out.println(next);
+                        ScaledValue existing = cells.put(next, val);
+                        if (existing != null) {
+                            if (existing.value != val.value) {
+                                throw new AssertionError("Illegal combination: " + val + " and " + existing);
+                            }
+                            ScaledValue newVal = new ScaledValue(val.value << 1, INITIAL_NEW_BLOCK_SCALE);
+                            gamePanel.incrementScore(newVal.value);
+                            cells.put(next, newVal);
+                            combined.add(next);
+                        }
+                    }
+                    updateGrid();
+                    sleepUninterruptibly(SLEEP_MILLIS_PER_FRAME);
+                }
+
+                List<FloatPoint> added = addNewBlocksAfterMove();
+
+                animateAddedAndCombined(combined, added);
+
+                checkAvailableMoves();
+                gamePanel.onMoveEnd();
+            }
+        });
 
         updateExec.execute(() -> {
             animateAddedAndCombined(emptyList(), addNewBlocks(INITIAL_BLOCKS));
@@ -134,48 +179,12 @@ public class GridPanel extends JPanel {
         gamePanel.reset();
     }
 
-    private void registerKeystroke(String name, int keyEvent, Supplier<List<Movement>> mover) {
+    private void registerKeystroke(String name, int keyEvent, Runnable mover) {
         getInputMap().put(KeyStroke.getKeyStroke(keyEvent, 0), name);
         getActionMap().put(name, new AbstractAction() {
             @Override
             public void actionPerformed(ActionEvent e) {
-                updateExec.execute(() -> {
-                    List<Movement> movements = mover.get(); // This calls one of the grid::move* methods
-                    if (!movements.isEmpty()) {
-                        List<MovementInfo> movementInfos = new ArrayList<>(movements.size());
-                        movements.forEach(m -> movementInfos.add(new MovementInfo(m)));
-
-                        List<FloatPoint> combined = new ArrayList<>();
-
-                        for (int i = 0; i < FRAMES_PER_MOVE; i++) {
-                            for (MovementInfo movementInfo : movementInfos) {
-                                ScaledValue val = cells.remove(movementInfo.getLastPoint());
-
-                                FloatPoint next = movementInfo.getNextPoint();
-//                                System.out.println(next);
-                                ScaledValue existing = cells.put(next, val);
-                                if (existing != null) {
-                                    if (existing.value != val.value) {
-                                        throw new AssertionError("Illegal combination: " + val + " and " + existing);
-                                    }
-                                    ScaledValue newVal = new ScaledValue(val.value << 1, INITIAL_NEW_BLOCK_SCALE);
-                                    gamePanel.incrementScore(newVal.value);
-                                    cells.put(next, newVal);
-                                    combined.add(next);
-                                }
-                            }
-                            updateGrid();
-                            sleepUninterruptibly(SLEEP_MILLIS_PER_FRAME);
-                        }
-
-                        List<FloatPoint> added = addNewBlocksAfterMove();
-
-                        animateAddedAndCombined(combined, added);
-
-                        checkAvailableMoves();
-                        gamePanel.onMoveEnd();
-                    }
-                });
+                updateExec.execute(mover::run);
             }
         });
     }
