@@ -37,12 +37,6 @@ public class Bot implements Runnable, GameListener {
             MoveDirection moveDirection = moveStrategy.calculateMove(driver.getGrid());
 
             driver.move(moveDirection);
-
-            try {
-                Thread.sleep(70);
-            } catch (InterruptedException e) {
-                e.printStackTrace();
-            }
         }
     }
 

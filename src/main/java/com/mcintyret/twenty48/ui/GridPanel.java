@@ -37,13 +37,11 @@ import com.mcintyret.twenty48.core.ValuedPoint;
  */
 public class GridPanel extends JPanel implements GameListener {
 
-    private static final boolean ANIMATED = false;
-
-    private static final long MOVE_TIME_MILLIS = ANIMATED ? 130 : 1;
+    private static final long MOVE_TIME_MILLIS = 50;
 
     private static final int FRAMES_PER_SECOND = 35;
 
-    private static final long FRAMES_PER_MOVE = ANIMATED ? (long) (FRAMES_PER_SECOND * (MOVE_TIME_MILLIS / 1000D)) : 1;
+    private static final long FRAMES_PER_MOVE = (long) (FRAMES_PER_SECOND * (MOVE_TIME_MILLIS / 1000D));
 
     private static final float BEVEL_PROPORTION = 5.8F;
 
@@ -150,9 +148,9 @@ public class GridPanel extends JPanel implements GameListener {
                         ScaledValue val = cells.remove(movementInfo.getLastPoint());
 
                         FloatPoint next = movementInfo.getNextPoint();
-                        //                                System.out.println(next);
                         ScaledValue existing = cells.put(next, val);
                         if (existing != null) {
+                            // If two blocks have moved to the same cell they must have merged, and therefore have the same value
                             if (existing.value != val.value) {
                                 throw new AssertionError("Illegal combination: " + val + " and " + existing);
                             }
