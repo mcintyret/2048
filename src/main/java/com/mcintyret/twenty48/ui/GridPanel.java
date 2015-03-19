@@ -11,6 +11,7 @@ import java.awt.Graphics;
 import java.awt.event.ActionEvent;
 import java.awt.event.KeyEvent;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -33,11 +34,13 @@ import com.mcintyret.twenty48.core.Point;
  */
 public class GridPanel extends JPanel {
 
-    private static final long MOVE_TIME_MILLIS = 30;
+    private static final boolean ANIMATED = false;
+
+    private static final long MOVE_TIME_MILLIS = ANIMATED ? 30 : 1;
 
     private static final int FRAMES_PER_SECOND = 35;
 
-    private static final long FRAMES_PER_MOVE = (long) (FRAMES_PER_SECOND * (MOVE_TIME_MILLIS / 1000D));
+    private static final long FRAMES_PER_MOVE = ANIMATED ? (long) (FRAMES_PER_SECOND * (MOVE_TIME_MILLIS / 1000D)) : 1;
 
     private static final float BEVEL_PROPORTION = 5.8F;
 
@@ -47,7 +50,7 @@ public class GridPanel extends JPanel {
 
     private static final float INITIAL_NEW_BLOCK_SCALE = 0.2F;
 
-    private final Map<FloatPoint, ScaledValue> cells = new HashMap<>();
+    private final Map<FloatPoint, ScaledValue> cells = Collections.synchronizedMap(new HashMap<>());
 
     private final GamePanel gamePanel;
 
@@ -94,6 +97,12 @@ public class GridPanel extends JPanel {
         }
 
         // Draw filled Cells
+        Map<FloatPoint, ScaledValue> cells;
+        synchronized (this.cells) {
+            // take a copy to avoid CMEs
+            cells = new HashMap<>(this.cells);
+        }
+
         for (Map.Entry<FloatPoint, ScaledValue> entry : cells.entrySet()) {
             ScaledValue value = entry.getValue();
 
@@ -134,12 +143,22 @@ public class GridPanel extends JPanel {
         registerKeystroke("up", KeyEvent.VK_UP, grid::moveUp);
         registerKeystroke("down", KeyEvent.VK_DOWN, grid::moveDown);
 
-        grid.setMoveListener((movements) -> {
-            if (!movements.isEmpty()) {
-                List<MovementInfo> movementInfos = new ArrayList<>(movements.size());
-                movements.forEach(m -> movementInfos.add(new MovementInfo(m)));
+        grid.setMoveListener(this::handleMove);
 
-                List<FloatPoint> combined = new ArrayList<>();
+        updateExec.execute(() -> {
+            animateAddedAndCombined(emptyList(), addNewBlocks(INITIAL_BLOCKS));
+            updateGrid();
+        });
+
+        gamePanel.reset();
+    }
+
+    private void handleMove(List<Movement> movements) {
+        if (!movements.isEmpty()) {
+            List<MovementInfo> movementInfos = new ArrayList<>(movements.size());
+            movements.forEach(m -> movementInfos.add(new MovementInfo(m)));
+
+            List<FloatPoint> combined = new ArrayList<>();
 
                 for (int i = 0; i < FRAMES_PER_MOVE; i++) {
                     for (MovementInfo movementInfo : movementInfos) {
@@ -162,21 +181,13 @@ public class GridPanel extends JPanel {
                     sleepUninterruptibly(SLEEP_MILLIS_PER_FRAME);
                 }
 
-                List<FloatPoint> added = addNewBlocksAfterMove();
+            List<FloatPoint> added = addNewBlocksAfterMove();
 
-                animateAddedAndCombined(combined, added);
+            animateAddedAndCombined(combined, added);
 
-                checkAvailableMoves();
-                gamePanel.onMoveEnd();
-            }
-        });
-
-        updateExec.execute(() -> {
-            animateAddedAndCombined(emptyList(), addNewBlocks(INITIAL_BLOCKS));
-            updateGrid();
-        });
-
-        gamePanel.reset();
+            checkAvailableMoves();
+            gamePanel.onMoveEnd();
+        }
     }
 
     private void registerKeystroke(String name, int keyEvent, Runnable mover) {

@@ -15,7 +15,7 @@ import com.mcintyret.twenty48.core.Grid;
  */
 public class GUI {
 
-    static final int BLOCK_WIDTH = 250;
+    static final int BLOCK_WIDTH = 50;
 
     static final int GAME_SIZE = 4;
 
