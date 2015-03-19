@@ -1,6 +1,6 @@
 package com.mcintyret.twenty48;
 
-import java.awt.*;
+import java.awt.Point;
 import java.util.Collection;
 import java.util.HashSet;
 import java.util.Random;
@@ -42,15 +42,16 @@ public class Utils {
 
     public static void sleepUninterruptibly(long millis) {
         long targetTime = System.currentTimeMillis() + millis;
-        do {
-            long toSleep = targetTime - System.currentTimeMillis();
+        long toSleep;
+        while ((toSleep = targetTime - System.currentTimeMillis()) > 0) {
+
             try {
                 Thread.sleep(toSleep);
                 break;
             } catch (InterruptedException e) {
                 Thread.interrupted();
             }
-        } while (true);
+        }
     }
 
 }
