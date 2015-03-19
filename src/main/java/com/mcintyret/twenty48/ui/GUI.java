@@ -35,10 +35,8 @@ public class GUI {
         MoveStrategy moveStrategy = new TopCornerMoveStrategy(10, 2);
 
         Driver driver = new Driver();
-        GamePanel gamePanel = new GamePanel();
-        GridPanel gridPanel = new GridPanel(gamePanel, driver);
 
-        FRAME.getContentPane().add(gamePanel);
+        FRAME.getContentPane().add(new GamePanel(driver));
 
         EventQueue.invokeLater(() -> FRAME.setVisible(true));
 

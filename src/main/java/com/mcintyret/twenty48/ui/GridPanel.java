@@ -6,7 +6,6 @@ import static com.mcintyret.twenty48.ui.GridColors.getFontColor;
 import static java.util.Collections.emptyList;
 import static java.util.stream.Collectors.toList;
 
-import java.awt.BorderLayout;
 import java.awt.Font;
 import java.awt.Graphics;
 import java.awt.event.ActionEvent;
@@ -54,15 +53,11 @@ public class GridPanel extends JPanel implements GameListener {
 
     private final Map<FloatPoint, ScaledValue> cells = Collections.synchronizedMap(new HashMap<>());
 
-    private final GamePanel gamePanel;
-
     private final Driver driver;
 
     private final ExecutorService updateExec = Executors.newSingleThreadExecutor();
 
-    public GridPanel(GamePanel gamePanel, Driver driver) {
-        this.gamePanel = gamePanel;
-        gamePanel.add(this, BorderLayout.CENTER);
+    public GridPanel(Driver driver) {
         this.driver = driver;
         driver.addGameListener(this);
 
@@ -162,7 +157,6 @@ public class GridPanel extends JPanel implements GameListener {
                                 throw new AssertionError("Illegal combination: " + val + " and " + existing);
                             }
                             ScaledValue newVal = new ScaledValue(val.value << 1, INITIAL_NEW_BLOCK_SCALE);
-                            gamePanel.incrementScore(newVal.value);
                             cells.put(next, newVal);
                             combined.add(next);
                         }
@@ -175,8 +169,6 @@ public class GridPanel extends JPanel implements GameListener {
             List<FloatPoint> addedFps = addNewPoints(added);
 
             animateAddedAndCombined(combined, addedFps);
-
-            gamePanel.onMoveEnd();
 
             if (gameOver) {
                 JOptionPane.showInternalMessageDialog(GUI.FRAME.getContentPane(), "You Lose!", "Oops", JOptionPane.ERROR_MESSAGE);
