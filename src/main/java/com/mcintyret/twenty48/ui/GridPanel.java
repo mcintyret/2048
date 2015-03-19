@@ -4,6 +4,7 @@ import static com.mcintyret.twenty48.Utils.sleepUninterruptibly;
 import static com.mcintyret.twenty48.ui.GridColors.getCellColor;
 import static com.mcintyret.twenty48.ui.GridColors.getFontColor;
 import static java.util.Collections.emptyList;
+import static java.util.stream.Collectors.toList;
 
 import java.awt.BorderLayout;
 import java.awt.Font;
@@ -24,27 +25,28 @@ import javax.swing.JOptionPane;
 import javax.swing.JPanel;
 import javax.swing.KeyStroke;
 
-import com.mcintyret.twenty48.core.Grid;
+import com.mcintyret.twenty48.core.Driver;
+import com.mcintyret.twenty48.core.GameListener;
+import com.mcintyret.twenty48.core.MoveDirection;
 import com.mcintyret.twenty48.core.Movement;
 import com.mcintyret.twenty48.core.Point;
+import com.mcintyret.twenty48.core.ValuedPoint;
 
 /**
  * User: tommcintyre
  * Date: 11/8/14
  */
-public class GridPanel extends JPanel {
+public class GridPanel extends JPanel implements GameListener {
 
     private static final boolean ANIMATED = false;
 
-    private static final long MOVE_TIME_MILLIS = ANIMATED ? 30 : 1;
+    private static final long MOVE_TIME_MILLIS = ANIMATED ? 130 : 1;
 
     private static final int FRAMES_PER_SECOND = 35;
 
     private static final long FRAMES_PER_MOVE = ANIMATED ? (long) (FRAMES_PER_SECOND * (MOVE_TIME_MILLIS / 1000D)) : 1;
 
     private static final float BEVEL_PROPORTION = 5.8F;
-
-    private static final int INITIAL_BLOCKS = 2;
 
     private static final long SLEEP_MILLIS_PER_FRAME = MOVE_TIME_MILLIS / FRAMES_PER_MOVE;
 
@@ -54,24 +56,26 @@ public class GridPanel extends JPanel {
 
     private final GamePanel gamePanel;
 
-    private Grid grid;
+    private final Driver driver;
 
     private final ExecutorService updateExec = Executors.newSingleThreadExecutor();
 
-    public GridPanel(GamePanel gamePanel, Grid grid) {
+    public GridPanel(GamePanel gamePanel, Driver driver) {
         this.gamePanel = gamePanel;
         gamePanel.add(this, BorderLayout.CENTER);
-        setGrid(grid);
-    }
+        this.driver = driver;
+        driver.addGameListener(this);
 
-    public GridPanel(GamePanel gamePanel) {
-        this(gamePanel, new Grid());
+        registerKeystroke("left", KeyEvent.VK_LEFT, MoveDirection.LEFT);
+        registerKeystroke("right", KeyEvent.VK_RIGHT, MoveDirection.RIGHT);
+        registerKeystroke("up", KeyEvent.VK_UP, MoveDirection.UP);
+        registerKeystroke("down", KeyEvent.VK_DOWN, MoveDirection.DOWN);
     }
 
     @Override
     public void paint(Graphics g) {
-        int rows = grid.getRows();
-        int cols = grid.getCols();
+        int rows = driver.getRows();
+        int cols = driver.getCols();
 
         // fill with bezel color
         g.setColor(GridColors.BEZEL_COLOR);
@@ -129,36 +133,22 @@ public class GridPanel extends JPanel {
         }
     }
 
-
-    private void reset() {
-        setGrid(new Grid());
+    @Override
+    public void onMove(List<Movement> movements, List<ValuedPoint> added, boolean gameOver) {
+        handleMoves(movements, added, gameOver);
     }
 
-    public void setGrid(Grid grid) {
-        this.grid = grid;
-        cells.clear();
-
-        registerKeystroke("left", KeyEvent.VK_LEFT, grid::moveLeft);
-        registerKeystroke("right", KeyEvent.VK_RIGHT, grid::moveRight);
-        registerKeystroke("up", KeyEvent.VK_UP, grid::moveUp);
-        registerKeystroke("down", KeyEvent.VK_DOWN, grid::moveDown);
-
-        grid.setMoveListener(this::handleMove);
-
-        updateExec.execute(() -> {
-            animateAddedAndCombined(emptyList(), addNewBlocks(INITIAL_BLOCKS));
-            updateGrid();
-        });
-
-        gamePanel.reset();
+    @Override
+    public void onStart(List<ValuedPoint> added) {
+        handleMoves(emptyList(), added, false);
     }
 
-    private void handleMove(List<Movement> movements) {
-        if (!movements.isEmpty()) {
-            List<MovementInfo> movementInfos = new ArrayList<>(movements.size());
-            movements.forEach(m -> movementInfos.add(new MovementInfo(m)));
-
-            List<FloatPoint> combined = new ArrayList<>();
+    private void handleMoves(List<Movement> movements, List<ValuedPoint> added, boolean gameOver) {
+        updateExec.submit(() -> {
+            boolean hasMovements = !movements.isEmpty();
+            List<FloatPoint> combined = hasMovements ? new ArrayList<>() : emptyList();
+            if (hasMovements) {
+                List<MovementInfo> movementInfos = movements.stream().map(MovementInfo::new).collect(toList());
 
                 for (int i = 0; i < FRAMES_PER_MOVE; i++) {
                     for (MovementInfo movementInfo : movementInfos) {
@@ -180,22 +170,26 @@ public class GridPanel extends JPanel {
                     updateGrid();
                     sleepUninterruptibly(SLEEP_MILLIS_PER_FRAME);
                 }
+            }
 
-            List<FloatPoint> added = addNewBlocksAfterMove();
+            List<FloatPoint> addedFps = addNewPoints(added);
 
-            animateAddedAndCombined(combined, added);
+            animateAddedAndCombined(combined, addedFps);
 
-            checkAvailableMoves();
             gamePanel.onMoveEnd();
-        }
+
+            if (gameOver) {
+                JOptionPane.showInternalMessageDialog(GUI.FRAME.getContentPane(), "You Lose!", "Oops", JOptionPane.ERROR_MESSAGE);
+            }
+        });
     }
 
-    private void registerKeystroke(String name, int keyEvent, Runnable mover) {
+    private void registerKeystroke(String name, int keyEvent, MoveDirection moveDirection) {
         getInputMap().put(KeyStroke.getKeyStroke(keyEvent, 0), name);
         getActionMap().put(name, new AbstractAction() {
             @Override
             public void actionPerformed(ActionEvent e) {
-                updateExec.execute(mover::run);
+                driver.move(moveDirection);
             }
         });
     }
@@ -219,31 +213,21 @@ public class GridPanel extends JPanel {
         }
     }
 
-
-    private List<FloatPoint> addNewBlocksAfterMove() {
-        return addNewBlocks(1);
-    }
-
-    private List<FloatPoint> addNewBlocks(int n) {
-        List<Point> points = grid.addNewBlocks(n);
+    private List<FloatPoint> addNewPoints(List<ValuedPoint> points) {
+        if (points.isEmpty()) {
+            return emptyList();
+        }
 
         List<FloatPoint> floatPoints = new ArrayList<>(points.size());
-        for (Point p : points) {
-            FloatPoint fp = new FloatPoint(p);
-            if (cells.put(new FloatPoint(p), new ScaledValue(grid.getNumber(p.x, p.y), INITIAL_NEW_BLOCK_SCALE)) != null) {
+        for (ValuedPoint p : points) {
+            FloatPoint fp = new FloatPoint(p.p);
+            if (cells.put(fp, new ScaledValue(p.val, INITIAL_NEW_BLOCK_SCALE)) != null) {
                 throw new AssertionError("Added to non-empty cell: " + p);
             }
             floatPoints.add(fp);
         }
         updateGrid();
         return floatPoints;
-    }
-
-    private void checkAvailableMoves() {
-        if (!grid.hasAvailableMoves()) {
-            JOptionPane.showInternalMessageDialog(GUI.FRAME.getContentPane(), "You Lose!", "Oops", JOptionPane.ERROR_MESSAGE);
-            reset();
-        }
     }
 
     private static final class FloatPoint {
@@ -292,7 +276,6 @@ public class GridPanel extends JPanel {
             return "[" + x + ", " + y + "]";
         }
     }
-
 
     private static final class MovementInfo {
         protected Supplier<FloatPoint> nextPointSupplier;

@@ -7,7 +7,9 @@ import javax.swing.JFrame;
 import javax.swing.WindowConstants;
 
 import com.mcintyret.twenty48.bot.Bot;
-import com.mcintyret.twenty48.core.Grid;
+import com.mcintyret.twenty48.bot.MoveStrategy;
+import com.mcintyret.twenty48.bot.TopCornerMoveStrategy;
+import com.mcintyret.twenty48.core.Driver;
 
 /**
  * User: tommcintyre
@@ -30,14 +32,20 @@ public class GUI {
 
         FRAME.setDefaultCloseOperation(WindowConstants.EXIT_ON_CLOSE);
 
-        Grid grid = new Grid();
-        Bot bot = new Bot(grid);
+        MoveStrategy moveStrategy = new TopCornerMoveStrategy(10, 2);
+
+        Driver driver = new Driver();
         GamePanel gamePanel = new GamePanel();
-        GridPanel gridPanel = new GridPanel(gamePanel, grid);
+        GridPanel gridPanel = new GridPanel(gamePanel, driver);
 
         FRAME.getContentPane().add(gamePanel);
 
         EventQueue.invokeLater(() -> FRAME.setVisible(true));
+
+        Bot bot = new Bot(driver, moveStrategy);
+        driver.start();
+//        new Thread(bot).start();
+
         bot.run();
     }
 

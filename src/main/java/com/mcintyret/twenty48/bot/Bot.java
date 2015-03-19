@@ -1,26 +1,42 @@
 package com.mcintyret.twenty48.bot;
 
-import com.mcintyret.twenty48.core.Grid;
+import java.util.List;
+import java.util.concurrent.CountDownLatch;
 
-public class Bot implements Runnable {
+import com.mcintyret.twenty48.core.Driver;
+import com.mcintyret.twenty48.core.GameListener;
+import com.mcintyret.twenty48.core.MoveDirection;
+import com.mcintyret.twenty48.core.Movement;
+import com.mcintyret.twenty48.core.ValuedPoint;
 
-    private final Grid grid;
+public class Bot implements Runnable, GameListener {
+
+    private final Driver driver;
 
     private final MoveStrategy moveStrategy;
 
-    public Bot(Grid grid) {
-        this.grid = grid;
-//        this.moveStrategy = new FreeSpacesMoveStrategy(1000, 10);
-        this.moveStrategy = new TopCornerMoveStrategy(10, 1);
+    public Bot(Driver driver, MoveStrategy moveStrategy) {
+        this.driver = driver;
+        this.moveStrategy = moveStrategy;
+        driver.addGameListener(this);
     }
+
+    private volatile boolean running = true;
+
+    private final CountDownLatch startLatch = new CountDownLatch(1);
 
     @Override
     public void run() {
-        while (grid.hasAvailableMoves()) {
-            Move move = moveStrategy.calculateMove(grid);
-            System.out.println("Moving " + move);
+        try {
+            startLatch.await();
+        } catch (InterruptedException e) {
+            throw new AssertionError(e);
+        }
 
-            move.apply(grid);
+        while (running) {
+            MoveDirection moveDirection = moveStrategy.calculateMove(driver.getGrid());
+
+            driver.move(moveDirection);
 
             try {
                 Thread.sleep(70);
@@ -28,5 +44,15 @@ public class Bot implements Runnable {
                 e.printStackTrace();
             }
         }
+    }
+
+    @Override
+    public void onMove(List<Movement> movements, List<ValuedPoint> newPoints, boolean gameOver) {
+        running = !gameOver;
+    }
+
+    @Override
+    public void onStart(List<ValuedPoint> initialBlocks) {
+        startLatch.countDown();
     }
 }

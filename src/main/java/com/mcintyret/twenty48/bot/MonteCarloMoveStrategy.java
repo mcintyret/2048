@@ -1,15 +1,18 @@
 package com.mcintyret.twenty48.bot;
 
 import java.util.Random;
+import java.util.concurrent.atomic.AtomicBoolean;
 
+import com.mcintyret.twenty48.core.Driver;
 import com.mcintyret.twenty48.core.Grid;
+import com.mcintyret.twenty48.core.MoveDirection;
 
 abstract class MonteCarloMoveStrategy implements MoveStrategy {
 
     private static final Random RNG = new Random();
 
-    private static Move randomMove() {
-        return Move.values()[RNG.nextInt(Move.values().length)];
+    private static MoveDirection randomMove() {
+        return MoveDirection.values()[RNG.nextInt(MoveDirection.values().length)];
     }
 
     private final int tries;
@@ -22,41 +25,42 @@ abstract class MonteCarloMoveStrategy implements MoveStrategy {
     }
 
     @Override
-    public Move calculateMove(final Grid grid) {
+    public MoveDirection calculateMove(final Grid grid) {
 
-        Move bestMove = null;
+        MoveDirection bestMoveDirection = null;
         int bestScore = -1;
         for (int i = 0; i < tries; i++) {
 
-            Grid testGrid = grid.copy();
-            Move first = null;
+            AtomicBoolean gameOver = new AtomicBoolean();
+            Driver driver = new Driver(grid.copy(), (a, b, isGameOver) -> gameOver.set(isGameOver));
+            MoveDirection first = null;
             int score = 0;
 
             for (int j = 0; j < depth; j++) {
-                Move move = randomMove();
+                MoveDirection moveDirection = randomMove();
                 if (first == null) {
-                    first = move;
+                    first = moveDirection;
                 }
 
-                move.apply(testGrid);
+                driver.move(moveDirection);
 
-                if (!testGrid.hasAvailableMoves()) {
-                    score = getFailScore(testGrid);
+                if (gameOver.get()) {
+                    score = getFailScore(driver.getGrid());
                     break;
                 }
             }
 
             if (score == 0) {
                 // Didn't die
-                score = scoreGrid(grid);
+                score = scoreGrid(driver.getGrid());
             }
 
             if (score > bestScore) {
                 bestScore = score;
-                bestMove = first;
+                bestMoveDirection = first;
             }
         }
-        return bestMove;
+        return bestMoveDirection;
     }
 
     protected int getFailScore(Grid testGrid) {

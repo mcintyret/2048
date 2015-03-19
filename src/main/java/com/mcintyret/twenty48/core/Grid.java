@@ -1,11 +1,7 @@
 package com.mcintyret.twenty48.core;
 
 import java.util.ArrayList;
-import java.util.Collections;
-import java.util.Iterator;
 import java.util.List;
-import java.util.Random;
-import java.util.function.Consumer;
 
 /**
  * User: tommcintyre
@@ -25,8 +21,6 @@ public class Grid {
 
     private Orientation currentOrientation;
 
-    private Consumer<List<Movement>> moveListener;
-
     public Grid() {
         this(DEFAULT_SIZE);
     }
@@ -41,23 +35,22 @@ public class Grid {
         numbers = new int[rows][cols];
     }
 
-    public void moveLeft() {
-        move(Orientation.ZERO);
+    List<Movement> move(MoveDirection direction) {
+        switch (direction) {
+            case LEFT:
+                return move(Orientation.ZERO);
+            case UP:
+                return move(Orientation.NINETY);
+            case RIGHT:
+                return move(Orientation.ONE_EIGHTY);
+            case DOWN:
+                return move(Orientation.TWO_SEVENTY);
+            default:
+                throw new IllegalArgumentException();
+        }
     }
 
-    public void moveUp() {
-        move(Orientation.NINETY);
-    }
-
-    public void moveRight() {
-        move(Orientation.ONE_EIGHTY);
-    }
-
-    public void moveDown() {
-        move(Orientation.TWO_SEVENTY);
-    }
-
-    private void move(Orientation orientation) {
+    private List<Movement> move(Orientation orientation) {
         currentOrientation = orientation;
         List<Movement> moves = new ArrayList<>();
 
@@ -103,10 +96,7 @@ public class Grid {
                 }
             }
         }
-
-        if (moveListener != null) {
-            moveListener.accept(moves);
-        }
+        return moves;
     }
 
     public int getRows() {
@@ -125,54 +115,7 @@ public class Grid {
         return currentOrientation.set(numbers, val, rows, cols, i, j);
     }
 
-
-    // TODO: make the below stuff nicer
-
-    private static final Random RNG = new Random();
-
-    public List<Point> addNewBlocks(int n) {
-
-        List<Point> free = newPointList();
-
-        for (int i = 0; i < numbers.length; i++) {
-            if (numbers[i][0] == 0) {
-                free.add(new Point(i, 0));
-            }
-            if (numbers[i][numbers.length - 1] == 0) {
-                free.add(new Point(i, numbers.length - 1));
-            }
-        }
-
-        for (int j = 1; j < numbers.length - 1; j++) {
-            if (numbers[0][j] == 0) {
-                free.add(new Point(0, j));
-            }
-
-            if (numbers[numbers.length - 1][j] == 0) {
-                free.add(new Point(numbers.length - 1, j));
-            }
-        }
-
-        Collections.shuffle(free);
-
-        Iterator<Point> it = free.iterator();
-        List<Point> added = new ArrayList<>(n);
-
-        while (it.hasNext() && n-- > 0) {
-            Point p = it.next();
-            added.add(p);
-            numbers[p.x][p.y] = RNG.nextInt(8) == 0 ? 4 : 2;
-        }
-
-        return added;
-    }
-
-    private List<Point> newPointList() {
-        int size = 2 * (rows + rows - 2); // TODO: ??
-        return new ArrayList<>(size);
-    }
-
-    public boolean hasAvailableMoves() {
+    boolean hasAvailableMoves() {
         for (int i = 0; i < numbers.length; i++) {
             for (int j = 0; j < numbers[i].length; j++) {
                 if (numbers[i][j] == 0) {
@@ -204,6 +147,10 @@ public class Grid {
         return numbers[i][j];
     }
 
+    void setNumber(int i, int j, int val) {
+        numbers[i][j] = val;
+    }
+
     public Grid copy() {
         Grid newGrid = new Grid(rows, cols);
         newGrid.currentOrientation = this.currentOrientation;
@@ -218,7 +165,4 @@ public class Grid {
         return score;
     }
 
-    public void setMoveListener(Consumer<List<Movement>> moveListener) {
-        this.moveListener = moveListener;
-    }
 }

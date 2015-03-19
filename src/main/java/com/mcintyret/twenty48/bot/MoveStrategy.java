@@ -1,9 +1,10 @@
 package com.mcintyret.twenty48.bot;
 
 import com.mcintyret.twenty48.core.Grid;
+import com.mcintyret.twenty48.core.MoveDirection;
 
 public interface MoveStrategy {
 
-    Move calculateMove(Grid grid);
+    MoveDirection calculateMove(Grid grid);
 
 }
