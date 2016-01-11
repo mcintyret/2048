@@ -8,6 +8,7 @@ import com.mcintyret.twenty48.core.ValuedPoint;
 import javax.swing.JLabel;
 import javax.swing.JPanel;
 import javax.swing.JSlider;
+import javax.swing.SwingConstants;
 import java.awt.BorderLayout;
 import java.awt.Dimension;
 import java.util.List;
@@ -37,7 +38,7 @@ public class GamePanel extends JPanel implements GameListener {
     private static final int TOP_PANEL_HEIGHT = 50;
 
 
-    private final JLabel scoreLabel = new JLabel();
+    private final JLabel scoreLabel = new JLabel("", SwingConstants.CENTER);
 
     private final Driver driver;
 
