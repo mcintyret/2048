@@ -192,7 +192,7 @@ public class GridPanel extends JPanel implements GameListener {
         animateAddedAndCombined(combined, addedFps);
 
         if (gameOver) {
-            JOptionPane.showInternalMessageDialog(GUI.FRAME.getContentPane(), "You Lose!", "Oops", JOptionPane.ERROR_MESSAGE);
+            JOptionPane.showMessageDialog(GUI.FRAME.getContentPane(), "You Lose!", "Oops", JOptionPane.ERROR_MESSAGE);
         }
     }
 
