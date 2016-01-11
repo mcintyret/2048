@@ -55,6 +55,8 @@ public class GridPanel extends JPanel implements GameListener {
     private final String UPDATE_THREAD_NAME = "GUI update thread";
     private final ExecutorService updateExec = Executors.newSingleThreadExecutor(r -> new Thread(r, UPDATE_THREAD_NAME));
 
+    private volatile boolean moveInProgress = false;
+
     public GridPanel(Driver driver) {
         this.driver = driver;
         driver.addGameListener(this);
@@ -149,6 +151,7 @@ public class GridPanel extends JPanel implements GameListener {
 
 
     private void handleMoves(List<Movement> movements, List<ValuedPoint> added, boolean gameOver) {
+        moveInProgress = true;
         if (isUpdateThread()) {
             doHandleMoves(movements, added, gameOver);
         } else {
@@ -161,6 +164,7 @@ public class GridPanel extends JPanel implements GameListener {
             });
             semaphore.acquireUninterruptibly();
         }
+        moveInProgress = false;
     }
 
     private void doHandleMoves(List<Movement> movements, List<ValuedPoint> added, boolean gameOver) {
@@ -201,7 +205,9 @@ public class GridPanel extends JPanel implements GameListener {
         getActionMap().put(name, new AbstractAction() {
             @Override
             public void actionPerformed(ActionEvent e) {
-                updateExec.submit(() -> driver.move(moveDirection));
+                if (!moveInProgress) {
+                    updateExec.submit(() -> driver.move(moveDirection));
+                }
             }
         });
     }
