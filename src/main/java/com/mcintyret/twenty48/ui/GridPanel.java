@@ -64,7 +64,7 @@ public class GridPanel extends JPanel implements GameListener {
 
     public void setMoveTimeMillis(long moveTimeMillis) {
         this.framesPerMove = Math.max(1L, (long) (FRAMES_PER_SECOND * (moveTimeMillis / 1000D)));
-        this.sleepMillisPerFrame =  moveTimeMillis / framesPerMove;
+        this.sleepMillisPerFrame = moveTimeMillis / framesPerMove;
     }
 
     @Override
@@ -139,41 +139,36 @@ public class GridPanel extends JPanel implements GameListener {
     }
 
     private void handleMoves(List<Movement> movements, List<ValuedPoint> added, boolean gameOver) {
-        updateExec.submit(() -> {
-            boolean hasMovements = !movements.isEmpty();
-            List<FloatPoint> combined = hasMovements ? new ArrayList<>() : emptyList();
-            if (hasMovements) {
-                List<MovementInfo> movementInfos = movements.stream().map(MovementInfo::new).collect(toList());
+        List<FloatPoint> combined = new ArrayList<>();
+        List<MovementInfo> movementInfos = movements.stream().map(MovementInfo::new).collect(toList());
 
-                for (int i = 0; i < framesPerMove; i++) {
-                    for (MovementInfo movementInfo : movementInfos) {
-                        ScaledValue val = cells.remove(movementInfo.getLastPoint());
+        for (int i = 0; i < framesPerMove; i++) {
+            for (MovementInfo movementInfo : movementInfos) {
+                ScaledValue val = cells.remove(movementInfo.getLastPoint());
 
-                        FloatPoint next = movementInfo.getNextPoint();
-                        ScaledValue existing = cells.put(next, val);
-                        if (existing != null) {
-                            // If two blocks have moved to the same cell they must have merged, and therefore have the same value
-                            if (existing.value != val.value) {
-                                throw new AssertionError("Illegal combination: " + val + " and " + existing);
-                            }
-                            ScaledValue newVal = new ScaledValue(val.value << 1, INITIAL_NEW_BLOCK_SCALE);
-                            cells.put(next, newVal);
-                            combined.add(next);
-                        }
+                FloatPoint next = movementInfo.getNextPoint();
+                ScaledValue existing = cells.put(next, val);
+                if (existing != null) {
+                    // If two blocks have moved to the same cell they must have merged, and therefore have the same value
+                    if (existing.value != val.value) {
+                        throw new AssertionError("Illegal combination: " + val + " and " + existing);
                     }
-                    updateGrid();
-                    sleepUninterruptibly(sleepMillisPerFrame);
+                    ScaledValue newVal = new ScaledValue(val.value << 1, INITIAL_NEW_BLOCK_SCALE);
+                    cells.put(next, newVal);
+                    combined.add(next);
                 }
             }
+            updateGrid();
+            sleepUninterruptibly(sleepMillisPerFrame);
+        }
 
-            List<FloatPoint> addedFps = addNewPoints(added);
+        List<FloatPoint> addedFps = addNewPoints(added);
 
-            animateAddedAndCombined(combined, addedFps);
+        animateAddedAndCombined(combined, addedFps);
 
-            if (gameOver) {
-                JOptionPane.showInternalMessageDialog(GUI.FRAME.getContentPane(), "You Lose!", "Oops", JOptionPane.ERROR_MESSAGE);
-            }
-        });
+        if (gameOver) {
+            JOptionPane.showInternalMessageDialog(GUI.FRAME.getContentPane(), "You Lose!", "Oops", JOptionPane.ERROR_MESSAGE);
+        }
     }
 
     private void registerKeystroke(String name, int keyEvent, MoveDirection moveDirection) {
@@ -181,7 +176,7 @@ public class GridPanel extends JPanel implements GameListener {
         getActionMap().put(name, new AbstractAction() {
             @Override
             public void actionPerformed(ActionEvent e) {
-                driver.move(moveDirection);
+                updateExec.submit(() -> driver.move(moveDirection));
             }
         });
     }
