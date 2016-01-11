@@ -42,15 +42,16 @@ public class GridPanel extends JPanel implements GameListener {
 
     private static final float INITIAL_NEW_BLOCK_SCALE = 0.2F;
 
-    private long framesPerMove;
+    private volatile long framesPerMove;
 
-    private long sleepMillisPerFrame;
+    private volatile long sleepMillisPerFrame;
 
     private final Map<FloatPoint, ScaledValue> cells = Collections.synchronizedMap(new HashMap<>());
 
     private final Driver driver;
 
-    private final ExecutorService updateExec = Executors.newSingleThreadExecutor();
+    private final String UPDATE_THREAD_NAME = "GUI update thread";
+    private final ExecutorService updateExec = Executors.newSingleThreadExecutor(r -> new Thread(r, UPDATE_THREAD_NAME));
 
     public GridPanel(Driver driver) {
         this.driver = driver;
@@ -63,8 +64,10 @@ public class GridPanel extends JPanel implements GameListener {
     }
 
     public void setMoveTimeMillis(long moveTimeMillis) {
-        this.framesPerMove = Math.max(1L, (long) (FRAMES_PER_SECOND * (moveTimeMillis / 1000D)));
-        this.sleepMillisPerFrame = moveTimeMillis / framesPerMove;
+        updateExec.submit(() -> {
+            this.framesPerMove = Math.max(1L, (long) (FRAMES_PER_SECOND * (moveTimeMillis / 1000D)));
+            this.sleepMillisPerFrame = moveTimeMillis / framesPerMove;
+        });
     }
 
     @Override
@@ -138,7 +141,20 @@ public class GridPanel extends JPanel implements GameListener {
         handleMoves(emptyList(), added, false);
     }
 
+    private boolean isUpdateThread() {
+        return Thread.currentThread().getName().equals(UPDATE_THREAD_NAME);
+    }
+
+
     private void handleMoves(List<Movement> movements, List<ValuedPoint> added, boolean gameOver) {
+        if (isUpdateThread()) {
+            doHandleMoves(movements, added, gameOver);
+        } else {
+            updateExec.submit(() -> doHandleMoves(movements, added, gameOver));
+        }
+    }
+
+    private void doHandleMoves(List<Movement> movements, List<ValuedPoint> added, boolean gameOver) {
         List<FloatPoint> combined = new ArrayList<>();
         List<MovementInfo> movementInfos = movements.stream().map(MovementInfo::new).collect(toList());
 
