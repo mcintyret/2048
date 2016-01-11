@@ -36,7 +36,10 @@ public class GUI {
 
         FRAME.getContentPane().add(new GamePanel(driver));
 
-        EventQueue.invokeLater(() -> FRAME.setVisible(true));
+        EventQueue.invokeLater(() -> {
+            FRAME.setLocationRelativeTo(null);
+            FRAME.setVisible(true);
+        });
 
 //        Bot bot = new Bot(driver, moveStrategy);
         driver.start();
