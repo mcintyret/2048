@@ -45,15 +45,15 @@ public class Driver {
     public void move(MoveDirection direction) {
         List<Movement> movements = grid.move(direction);
 
-        boolean hasMovements = !movements.isEmpty();
-        // If the move caused no blocks to move then we don't add any new ones
-        List<ValuedPoint> added = hasMovements ? addNewBlocks(1) : Collections.<ValuedPoint>emptyList();
-
-        if (hasMovements) {
-            moveCount++;
+        if (movements.isEmpty()) {
+            return; // Nothing interesting happened, don't need to do anything
         }
 
-        boolean gameOver = hasMovements && !grid.hasAvailableMoves();
+        List<ValuedPoint> added = addNewBlocks(1);
+
+        moveCount++;
+
+        boolean gameOver = !grid.hasAvailableMoves();
 
         listeners.forEach(l -> l.onMove(movements, added, gameOver));
     }
