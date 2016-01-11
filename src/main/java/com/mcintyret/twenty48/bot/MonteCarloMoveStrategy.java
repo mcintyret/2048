@@ -1,11 +1,15 @@
 package com.mcintyret.twenty48.bot;
 
-import java.util.Random;
-import java.util.concurrent.atomic.AtomicBoolean;
-
 import com.mcintyret.twenty48.core.Driver;
+import com.mcintyret.twenty48.core.GameListener;
 import com.mcintyret.twenty48.core.Grid;
 import com.mcintyret.twenty48.core.MoveDirection;
+import com.mcintyret.twenty48.core.Movement;
+import com.mcintyret.twenty48.core.ValuedPoint;
+
+import java.util.List;
+import java.util.Random;
+import java.util.concurrent.atomic.AtomicBoolean;
 
 abstract class MonteCarloMoveStrategy implements MoveStrategy {
 
@@ -32,7 +36,17 @@ abstract class MonteCarloMoveStrategy implements MoveStrategy {
         for (int i = 0; i < tries; i++) {
 
             AtomicBoolean gameOver = new AtomicBoolean();
-            Driver driver = new Driver(grid.copy(), (a, b, isGameOver) -> gameOver.set(isGameOver));
+            Driver driver = new Driver(grid.copy(), new GameListener() {
+                @Override
+                public void onMove(List<Movement> movements, List<ValuedPoint> newPoints, boolean isGameOver) {
+                    gameOver.set(isGameOver);
+                }
+
+                @Override
+                public void onStart(List<ValuedPoint> initialBlocks) {
+                    // do nothing
+                }
+            });
             MoveDirection first = null;
             int score = 0;
 
