@@ -22,6 +22,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
+import java.util.concurrent.Semaphore;
 import java.util.function.Supplier;
 
 import static com.mcintyret.twenty48.Utils.sleepUninterruptibly;
@@ -50,6 +51,7 @@ public class GridPanel extends JPanel implements GameListener {
 
     private final Driver driver;
 
+    private final Semaphore semaphore = new Semaphore(0);
     private final String UPDATE_THREAD_NAME = "GUI update thread";
     private final ExecutorService updateExec = Executors.newSingleThreadExecutor(r -> new Thread(r, UPDATE_THREAD_NAME));
 
@@ -150,7 +152,14 @@ public class GridPanel extends JPanel implements GameListener {
         if (isUpdateThread()) {
             doHandleMoves(movements, added, gameOver);
         } else {
-            updateExec.submit(() -> doHandleMoves(movements, added, gameOver));
+            updateExec.submit(() -> {
+                try {
+                    doHandleMoves(movements, added, gameOver);
+                } finally {
+                    semaphore.release();
+                }
+            });
+            semaphore.acquireUninterruptibly();
         }
     }
 
