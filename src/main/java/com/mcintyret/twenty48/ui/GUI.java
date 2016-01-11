@@ -1,15 +1,13 @@
 package com.mcintyret.twenty48.ui;
 
-import java.awt.Dimension;
-import java.awt.EventQueue;
-
-import javax.swing.JFrame;
-import javax.swing.WindowConstants;
-
-import com.mcintyret.twenty48.bot.Bot;
 import com.mcintyret.twenty48.bot.MoveStrategy;
 import com.mcintyret.twenty48.bot.TopCornerMoveStrategy;
 import com.mcintyret.twenty48.core.Driver;
+
+import javax.swing.JFrame;
+import javax.swing.WindowConstants;
+import java.awt.Dimension;
+import java.awt.EventQueue;
 
 /**
  * User: tommcintyre
@@ -17,9 +15,9 @@ import com.mcintyret.twenty48.core.Driver;
  */
 public class GUI {
 
-    static final int BLOCK_WIDTH = 50;
+    private static final int BLOCK_WIDTH = 50;
 
-    static final int GAME_SIZE = 4;
+    private static final int GAME_SIZE = 4;
 
     private static final int GAME_WIDTH = BLOCK_WIDTH * GAME_SIZE;
 
@@ -40,11 +38,11 @@ public class GUI {
 
         EventQueue.invokeLater(() -> FRAME.setVisible(true));
 
-        Bot bot = new Bot(driver, moveStrategy);
+//        Bot bot = new Bot(driver, moveStrategy);
         driver.start();
 //        new Thread(bot).start();
 
-        bot.run();
+//        bot.run();
     }
 
 }
