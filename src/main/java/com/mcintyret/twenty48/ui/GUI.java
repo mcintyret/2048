@@ -6,7 +6,6 @@ import com.mcintyret.twenty48.core.Driver;
 
 import javax.swing.JFrame;
 import javax.swing.WindowConstants;
-import java.awt.Dimension;
 import java.awt.EventQueue;
 
 /**
@@ -15,18 +14,9 @@ import java.awt.EventQueue;
  */
 public class GUI {
 
-    private static final int BLOCK_WIDTH = 100;
-
-    private static final int GAME_SIZE = 4;
-
-    private static final int GAME_WIDTH = BLOCK_WIDTH * GAME_SIZE;
-
     static final JFrame FRAME = new JFrame("2048");
 
-
     public static void main(String[] args) {
-
-        FRAME.setSize(new Dimension(GAME_WIDTH, GAME_WIDTH));
 
         FRAME.setDefaultCloseOperation(WindowConstants.EXIT_ON_CLOSE);
 
@@ -34,9 +24,12 @@ public class GUI {
 
         Driver driver = new Driver();
 
-        FRAME.getContentPane().add(new GamePanel(driver));
+        GamePanel gamePanel = new GamePanel(driver);
+        FRAME.getContentPane().add(gamePanel);
 
         EventQueue.invokeLater(() -> {
+            FRAME.pack();
+            FRAME.setSize(gamePanel.getSize());
             FRAME.setLocationRelativeTo(null);
             FRAME.setVisible(true);
         });
