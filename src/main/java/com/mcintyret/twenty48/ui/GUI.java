@@ -15,7 +15,7 @@ import java.awt.EventQueue;
  */
 public class GUI {
 
-    private static final int BLOCK_WIDTH = 50;
+    private static final int BLOCK_WIDTH = 100;
 
     private static final int GAME_SIZE = 4;
 
