@@ -11,6 +11,10 @@ import java.util.List;
 import java.util.Random;
 import java.util.concurrent.atomic.AtomicBoolean;
 
+/**
+ * Base class for MoveStrategy implementations that want to decide on a move by randomly simulating potential moves
+ * and scoring them (according to the implementation class' strategy), using the highest-scoring move
+ */
 abstract class MonteCarloMoveStrategy implements MoveStrategy {
 
     private static final Random RNG = new Random();
