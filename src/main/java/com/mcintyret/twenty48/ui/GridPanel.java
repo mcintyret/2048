@@ -1,11 +1,16 @@
 package com.mcintyret.twenty48.ui;
 
-import static com.mcintyret.twenty48.Utils.sleepUninterruptibly;
-import static com.mcintyret.twenty48.ui.GridColors.getCellColor;
-import static com.mcintyret.twenty48.ui.GridColors.getFontColor;
-import static java.util.Collections.emptyList;
-import static java.util.stream.Collectors.toList;
+import com.mcintyret.twenty48.core.Driver;
+import com.mcintyret.twenty48.core.GameListener;
+import com.mcintyret.twenty48.core.MoveDirection;
+import com.mcintyret.twenty48.core.Movement;
+import com.mcintyret.twenty48.core.Point;
+import com.mcintyret.twenty48.core.ValuedPoint;
 
+import javax.swing.AbstractAction;
+import javax.swing.JOptionPane;
+import javax.swing.JPanel;
+import javax.swing.KeyStroke;
 import java.awt.Font;
 import java.awt.Graphics;
 import java.awt.event.ActionEvent;
@@ -19,17 +24,11 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.function.Supplier;
 
-import javax.swing.AbstractAction;
-import javax.swing.JOptionPane;
-import javax.swing.JPanel;
-import javax.swing.KeyStroke;
-
-import com.mcintyret.twenty48.core.Driver;
-import com.mcintyret.twenty48.core.GameListener;
-import com.mcintyret.twenty48.core.MoveDirection;
-import com.mcintyret.twenty48.core.Movement;
-import com.mcintyret.twenty48.core.Point;
-import com.mcintyret.twenty48.core.ValuedPoint;
+import static com.mcintyret.twenty48.Utils.sleepUninterruptibly;
+import static com.mcintyret.twenty48.ui.GridColors.getCellColor;
+import static com.mcintyret.twenty48.ui.GridColors.getFontColor;
+import static java.util.Collections.emptyList;
+import static java.util.stream.Collectors.toList;
 
 /**
  * User: tommcintyre
@@ -37,17 +36,15 @@ import com.mcintyret.twenty48.core.ValuedPoint;
  */
 public class GridPanel extends JPanel implements GameListener {
 
-    private static final long MOVE_TIME_MILLIS = 50;
-
     private static final int FRAMES_PER_SECOND = 35;
-
-    private static final long FRAMES_PER_MOVE = (long) (FRAMES_PER_SECOND * (MOVE_TIME_MILLIS / 1000D));
 
     private static final float BEVEL_PROPORTION = 5.8F;
 
-    private static final long SLEEP_MILLIS_PER_FRAME = MOVE_TIME_MILLIS / FRAMES_PER_MOVE;
-
     private static final float INITIAL_NEW_BLOCK_SCALE = 0.2F;
+
+    private long framesPerMove;
+
+    private long sleepMillisPerFrame;
 
     private final Map<FloatPoint, ScaledValue> cells = Collections.synchronizedMap(new HashMap<>());
 
@@ -63,6 +60,11 @@ public class GridPanel extends JPanel implements GameListener {
         registerKeystroke("right", KeyEvent.VK_RIGHT, MoveDirection.RIGHT);
         registerKeystroke("up", KeyEvent.VK_UP, MoveDirection.UP);
         registerKeystroke("down", KeyEvent.VK_DOWN, MoveDirection.DOWN);
+    }
+
+    public void setMoveTimeMillis(long moveTimeMillis) {
+        this.framesPerMove = Math.max(1L, (long) (FRAMES_PER_SECOND * (moveTimeMillis / 1000D)));
+        this.sleepMillisPerFrame =  moveTimeMillis / framesPerMove;
     }
 
     @Override
@@ -143,7 +145,7 @@ public class GridPanel extends JPanel implements GameListener {
             if (hasMovements) {
                 List<MovementInfo> movementInfos = movements.stream().map(MovementInfo::new).collect(toList());
 
-                for (int i = 0; i < FRAMES_PER_MOVE; i++) {
+                for (int i = 0; i < framesPerMove; i++) {
                     for (MovementInfo movementInfo : movementInfos) {
                         ScaledValue val = cells.remove(movementInfo.getLastPoint());
 
@@ -160,7 +162,7 @@ public class GridPanel extends JPanel implements GameListener {
                         }
                     }
                     updateGrid();
-                    sleepUninterruptibly(SLEEP_MILLIS_PER_FRAME);
+                    sleepUninterruptibly(sleepMillisPerFrame);
                 }
             }
 
@@ -189,12 +191,12 @@ public class GridPanel extends JPanel implements GameListener {
             SizeChangeInfo addedSci = new SizeChangeInfo(INITIAL_NEW_BLOCK_SCALE, 1.0F);
             SizeChangeInfo combinedSci = new SizeChangeInfo(INITIAL_NEW_BLOCK_SCALE, 1.2F); // TODO: needs to be dynamic, or at least based on bezel?
 
-            for (int i = 0; i < FRAMES_PER_MOVE; i++) {
+            for (int i = 0; i < framesPerMove; i++) {
                 combined.forEach(fp -> cells.computeIfPresent(fp, (p, sv) -> combinedSci.nextScaledValue(sv)));
                 added.forEach(fp -> cells.computeIfPresent(fp, (p, sv) -> addedSci.nextScaledValue(sv)));
 
                 updateGrid();
-                sleepUninterruptibly(SLEEP_MILLIS_PER_FRAME);
+                sleepUninterruptibly(sleepMillisPerFrame);
             }
 
             // finally set all the combined back to normal size
@@ -267,7 +269,7 @@ public class GridPanel extends JPanel implements GameListener {
         }
     }
 
-    private static final class MovementInfo {
+    private final class MovementInfo {
         protected Supplier<FloatPoint> nextPointSupplier;
 
         protected FloatPoint lastPoint;
@@ -276,7 +278,7 @@ public class GridPanel extends JPanel implements GameListener {
             lastPoint = new FloatPoint(movement.getFrom());
             if (movement.getFrom().x != movement.getTo().x) {
                 float d = Math.abs(movement.getFrom().x - movement.getTo().x);
-                float perFrame = d / FRAMES_PER_MOVE;
+                float perFrame = d / framesPerMove;
                 if (movement.getFrom().x > movement.getTo().x) {
                     nextPointSupplier = () -> new FloatPoint(lastPoint.x - perFrame, lastPoint.y);
                 } else {
@@ -284,7 +286,7 @@ public class GridPanel extends JPanel implements GameListener {
                 }
             } else {
                 float d = Math.abs(movement.getFrom().y - movement.getTo().y);
-                float perFrame = d / FRAMES_PER_MOVE;
+                float perFrame = d / framesPerMove;
                 if (movement.getFrom().y > movement.getTo().y) {
                     nextPointSupplier = () -> new FloatPoint(lastPoint.x, lastPoint.y - perFrame);
                 } else {
@@ -304,12 +306,12 @@ public class GridPanel extends JPanel implements GameListener {
         }
     }
 
-    private static class SizeChangeInfo {
+    private class SizeChangeInfo {
 
         private final float increment;
 
         protected SizeChangeInfo(float startScale, float endScale) {
-            this.increment = (endScale - startScale) / FRAMES_PER_MOVE;
+            this.increment = (endScale - startScale) / framesPerMove;
         }
 
         public ScaledValue nextScaledValue(ScaledValue in) {
