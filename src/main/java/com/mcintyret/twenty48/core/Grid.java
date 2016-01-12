@@ -4,8 +4,7 @@ import java.util.ArrayList;
 import java.util.List;
 
 /**
- * User: tommcintyre
- * Date: 11/8/14
+ * Represents the numbers currently on the game grid
  */
 public class Grid {
 
@@ -99,10 +98,16 @@ public class Grid {
         return moves;
     }
 
+    /**
+     * Returns the number of rows in this grid
+     */
     public int getRows() {
         return rows;
     }
 
+    /**
+     * Returns the number of columns in this grid
+     */
     public int getCols() {
         return cols;
     }
@@ -143,6 +148,11 @@ public class Grid {
         System.out.println();
     }
 
+    /**
+     * Returns the number at row i, column j.
+     * Row and column indices are 0-based.
+     * A value of 0 means no number is present.
+     */
     public int getNumber(int i, int j) {
         return numbers[i][j];
     }
@@ -151,6 +161,10 @@ public class Grid {
         numbers[i][j] = val;
     }
 
+    /**
+     * Returns a copy of this Grid. Useful if, for example, you wanted to run a simulation of possible moves without
+     * changing the state of this Grid.
+     */
     public Grid copy() {
         Grid newGrid = new Grid(rows, cols);
         newGrid.currentOrientation = this.currentOrientation;
