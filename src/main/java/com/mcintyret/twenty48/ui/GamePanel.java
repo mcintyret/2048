@@ -75,7 +75,7 @@ public class GamePanel extends JPanel implements GameListener {
     }
 
     private void updateScoreLabel() {
-        scoreLabel.setText("Score: " + driver.getGrid().getScore());
+        scoreLabel.setText("Score: " + driver.getGrid().getScore() + "    |    Moves: " + driver.getGrid().getMoves());
     }
 
     @Override

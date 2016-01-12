@@ -18,6 +18,8 @@ public class Grid {
 
     private int score;
 
+    private int moves;
+
     private Orientation currentOrientation;
 
     public Grid() {
@@ -50,6 +52,7 @@ public class Grid {
     }
 
     private List<Movement> move(Orientation orientation) {
+        this.moves++;
         currentOrientation = orientation;
         List<Movement> moves = new ArrayList<>();
 
@@ -168,6 +171,7 @@ public class Grid {
     public Grid copy() {
         Grid newGrid = new Grid(rows, cols);
         newGrid.score = score;
+        newGrid.moves = moves;
         newGrid.currentOrientation = this.currentOrientation;
 
         for (int r = 0; r < rows; r++) {
@@ -176,8 +180,17 @@ public class Grid {
         return newGrid;
     }
 
+    /**
+     * Returns the current score of the grid
+     */
     public int getScore() {
         return score;
     }
 
+    /**
+     * Returns the number of moves that have been applied to this grid
+     */
+    public int getMoves() {
+        return moves;
+    }
 }
