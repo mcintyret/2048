@@ -43,13 +43,17 @@ public class Driver {
     }
 
     public void move(MoveDirection direction) {
+        move(direction, true);
+    }
+
+    public void move(MoveDirection direction, boolean addNewBlocks) {
         List<Movement> movements = grid.move(direction);
 
         if (movements.isEmpty()) {
             return; // Nothing interesting happened, don't need to do anything
         }
 
-        List<ValuedPoint> added = addNewBlocks(1);
+        List<ValuedPoint> added = addNewBlocks ? addNewBlocks(1) : Collections.emptyList();
 
         moveCount++;
 
