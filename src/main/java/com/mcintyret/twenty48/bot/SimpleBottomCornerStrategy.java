@@ -13,16 +13,59 @@ import java.util.concurrent.atomic.AtomicBoolean;
 
 public class SimpleBottomCornerStrategy implements MoveStrategy {
 
+    private MoveDirection previousMove;
+
+    int sameMoveCount = 0;
+
     @Override
     public MoveDirection calculateMove(Grid grid) {
-        int downScore = calculateScoreChange(grid, MoveDirection.DOWN);
-        int leftScore = calculateScoreChange(grid, MoveDirection.LEFT);
+        MoveDirection move = doCalculateMove(grid);
+        if (move == previousMove) {
+            sameMoveCount++;
+            if (sameMoveCount > 100000) {
+                System.out.println(move);
+            }
+        }
+        return (previousMove = move);
+    }
+
+    private MoveDirection doCalculateMove(Grid grid) {
+        int leftScore = (int) (calculateScoreChange(grid, MoveDirection.LEFT) * 1.5F);
+        if (previousMove == MoveDirection.RIGHT) {
+            // Very strong chance that we were forced to do this last move against our will. Just move back!
+            if (leftScore >= 0) {
+                return MoveDirection.LEFT;
+            }
+        }
+
+        if (previousMove == MoveDirection.UP && grid.getNumber(grid.getRows() - 1, 0) == 0) {
+            // If we just moved up and left a gap at the bottom left corner, move back down
+            return MoveDirection.DOWN;
+        }
+
+        boolean firstColFull = isColFull(grid, 0);
+
+        if (!firstColFull && leftScore >= 0) {
+            // Always move left if it will help fill up the first column
+            return MoveDirection.LEFT;
+        }
+
+        int downScore = (int) (calculateScoreChange(grid, MoveDirection.DOWN) * 1.8F);
         int upLeftScore = -1;
         int upScore = -10;
 
         // if it's safe to move up, our best bet might be to move up and the move left
-        if (isColFull(grid, 0)) {
+        if (firstColFull) {
             upLeftScore = calculateScoreChange(grid, MoveDirection.UP, MoveDirection.LEFT);
+            if (upLeftScore >= 0) {
+                int downLeftScore = calculateScoreChange(grid, MoveDirection.DOWN, MoveDirection.LEFT);
+                // Must be significantly better than going down then left
+                if (upLeftScore < downLeftScore * 4) {
+                    upLeftScore = -1;
+                } else {
+                    upLeftScore /= 2; // give it a penalty anyway
+                }
+            }
             upScore = calculateScoreChange(grid, MoveDirection.UP);
         }
 
@@ -94,7 +137,7 @@ public class SimpleBottomCornerStrategy implements MoveStrategy {
         });
 
         for (MoveDirection direction : directions) {
-            driver.move(direction);
+            driver.move(direction, false); // only want to take into account scores from existing blocks here
         }
 
         if (gameOverRef.get() || allMovements.isEmpty()) {
