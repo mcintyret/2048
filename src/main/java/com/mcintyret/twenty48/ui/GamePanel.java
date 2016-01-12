@@ -20,7 +20,7 @@ import java.util.List;
 public class GamePanel extends JPanel implements GameListener {
 
     private static final int DEFAULT_ANIMATION_TIME_MILLIS = 100;
-    private static final int MIN_ANIMATION_TIME_MILLIS = 30;
+    private static final int MIN_ANIMATION_TIME_MILLIS = 1;
     private static final int MAX_ANIMATION_TIME_MILLIS = 600;
 
     /*
