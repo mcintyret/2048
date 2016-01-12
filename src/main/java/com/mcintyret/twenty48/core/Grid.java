@@ -167,6 +167,7 @@ public class Grid {
      */
     public Grid copy() {
         Grid newGrid = new Grid(rows, cols);
+        newGrid.score = score;
         newGrid.currentOrientation = this.currentOrientation;
 
         for (int r = 0; r < rows; r++) {
