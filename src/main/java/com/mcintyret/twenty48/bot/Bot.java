@@ -1,13 +1,12 @@
 package com.mcintyret.twenty48.bot;
 
-import java.util.List;
-import java.util.concurrent.CountDownLatch;
-
 import com.mcintyret.twenty48.core.Driver;
 import com.mcintyret.twenty48.core.GameListener;
 import com.mcintyret.twenty48.core.MoveDirection;
 import com.mcintyret.twenty48.core.Movement;
 import com.mcintyret.twenty48.core.ValuedPoint;
+
+import java.util.List;
 
 public class Bot implements Runnable, GameListener {
 
@@ -23,16 +22,8 @@ public class Bot implements Runnable, GameListener {
 
     private volatile boolean running = true;
 
-    private final CountDownLatch startLatch = new CountDownLatch(1);
-
     @Override
     public void run() {
-        try {
-            startLatch.await();
-        } catch (InterruptedException e) {
-            throw new AssertionError(e);
-        }
-
         while (running) {
             MoveDirection moveDirection = moveStrategy.calculateMove(driver.getGrid());
 
@@ -47,6 +38,7 @@ public class Bot implements Runnable, GameListener {
 
     @Override
     public void onStart(List<ValuedPoint> initialBlocks) {
-        startLatch.countDown();
+        // Don't care
     }
+
 }
