@@ -3,8 +3,8 @@ This is my java8 version of the incredibly addictive game [2048](https://gabriel
 To give it a go simply:
 
 1. clone the repo
-2. mvn clean package
-3. java -jar target/2048.jar
+2. `mvn clean package`
+3. `java -jar target/2048.jar`
 
 ##Bots
 
@@ -31,8 +31,8 @@ public class MyCunningMoveStrategy implements MoveStrategy {
 
 ```
 
-could be run (assuming the compiled MoveStrategy.class file is in folder `pwd`/foo/bar) by:
+could be run (assuming the compiled MoveStrategy.class file is in folder <pwd>/foo/bar) by:
 
-java -classpath foo:target/2048.jar com.mcintyret.twenty48.ui.GUI foo.bar.MyCunningMoveStrategy 15 874.56 helloWorld
+`java -classpath foo:target/2048.jar com.mcintyret.twenty48.ui.GUI foo.bar.MyCunningMoveStrategy 15 874.56 helloWorld`
 
-(unfortunately the jar cannot be run directly as this doesn't allow adding extra files to the classpath)
+(unfortunately the jar cannot be run directly as this doesn't allow adding extra files to the classpath. GUI.java is the main entry point for the program.)
