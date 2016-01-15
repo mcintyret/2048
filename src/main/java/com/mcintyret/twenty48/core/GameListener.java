@@ -6,5 +6,7 @@ public interface GameListener {
 
     void onMove(List<Movement> movements, List<ValuedPoint> newPoints, boolean gameOver);
 
-    void onStart(List<ValuedPoint> initialBlocks);
+    default void onStart(List<ValuedPoint> initialBlocks) {
+        // do nothing
+    }
 }

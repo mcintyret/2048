@@ -35,10 +35,4 @@ public class Bot implements Runnable, GameListener {
     public void onMove(List<Movement> movements, List<ValuedPoint> newPoints, boolean gameOver) {
         running = !gameOver;
     }
-
-    @Override
-    public void onStart(List<ValuedPoint> initialBlocks) {
-        // Don't care
-    }
-
 }
