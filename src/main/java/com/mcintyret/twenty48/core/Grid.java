@@ -20,6 +20,8 @@ public class Grid {
 
     private int moves;
 
+    private int tileCount;
+
     private Orientation currentOrientation;
 
     public Grid() {
@@ -71,6 +73,7 @@ public class Grid {
                             moved = true;
                             val *= 2;
                             score += val;
+                            tileCount--;
                             end = k;
                             lastMerge = k;
                             break;
@@ -161,6 +164,10 @@ public class Grid {
     }
 
     void setNumber(int i, int j, int val) {
+        if (numbers[i][j] != 0 || val == 0) {
+            throw new AssertionError();
+        }
+        tileCount++;
         numbers[i][j] = val;
     }
 
@@ -172,6 +179,7 @@ public class Grid {
         Grid newGrid = new Grid(rows, cols);
         newGrid.score = score;
         newGrid.moves = moves;
+        newGrid.tileCount = tileCount;
         newGrid.currentOrientation = this.currentOrientation;
 
         for (int r = 0; r < rows; r++) {
@@ -192,5 +200,12 @@ public class Grid {
      */
     public int getMoves() {
         return moves;
+    }
+
+    /**
+     * Returns the number of tiles present on the grid (i.e. the number of values above 0)
+     */
+    public int getTileCount() {
+        return tileCount;
     }
 }
