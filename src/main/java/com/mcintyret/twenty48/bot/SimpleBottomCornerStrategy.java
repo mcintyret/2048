@@ -129,11 +129,6 @@ public class SimpleBottomCornerStrategy implements MoveStrategy {
                 allMovements.addAll(movements);
                 gameOverRef.set(gameOver);
             }
-
-            @Override
-            public void onStart(List<ValuedPoint> initialBlocks) {
-                //To change body of implemented methods use File | Settings | File Templates.
-            }
         });
 
         for (MoveDirection direction : directions) {

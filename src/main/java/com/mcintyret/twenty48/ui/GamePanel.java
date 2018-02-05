@@ -82,9 +82,4 @@ public class GamePanel extends JPanel implements GameListener {
     public void onMove(List<Movement> movements, List<ValuedPoint> newPoints, boolean gameOver) {
         updateScoreLabel();
     }
-
-    @Override
-    public void onStart(List<ValuedPoint> initialBlocks) {
-        // Don't care
-    }
 }

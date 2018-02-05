@@ -45,11 +45,6 @@ public abstract class MonteCarloMoveStrategy implements MoveStrategy {
                 public void onMove(List<Movement> movements, List<ValuedPoint> newPoints, boolean isGameOver) {
                     gameOver.set(isGameOver);
                 }
-
-                @Override
-                public void onStart(List<ValuedPoint> initialBlocks) {
-                    // do nothing
-                }
             });
             MoveDirection first = null;
             int score = 0;
