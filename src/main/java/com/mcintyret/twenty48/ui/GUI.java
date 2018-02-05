@@ -24,10 +24,20 @@ public class GUI {
 
     public static void main(String[] args) {
 
-        FRAME.setDefaultCloseOperation(WindowConstants.EXIT_ON_CLOSE);
-
         Driver driver = new Driver();
+        attachGui(driver);
+        driver.start();
 
+        if (args.length > 0) {
+            MoveStrategy moveStrategy = instantiateMoveStrategy(args);
+
+            Bot bot = new Bot(driver, moveStrategy);
+            bot.run();
+        }
+    }
+
+    public static void attachGui(Driver driver) {
+        FRAME.setDefaultCloseOperation(WindowConstants.EXIT_ON_CLOSE);
         GamePanel gamePanel = new GamePanel(driver);
         FRAME.getContentPane().add(gamePanel);
 
@@ -37,16 +47,6 @@ public class GUI {
             FRAME.setLocationRelativeTo(null);
             FRAME.setVisible(true);
         });
-
-        driver.start();
-
-        if (args.length > 0) {
-            MoveStrategy moveStrategy = instantiateMoveStrategy(args);
-
-            Bot bot = new Bot(driver, moveStrategy);
-            bot.run();
-        }
-
     }
 
     private static void errorMessageAndExit(String message) {
