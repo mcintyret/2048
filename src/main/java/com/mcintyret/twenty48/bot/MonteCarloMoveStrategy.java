@@ -40,12 +40,7 @@ public abstract class MonteCarloMoveStrategy implements MoveStrategy {
         for (int i = 0; i < tries; i++) {
 
             AtomicBoolean gameOver = new AtomicBoolean();
-            Driver driver = new Driver(grid.copy(), new GameListener() {
-                @Override
-                public void onMove(List<Movement> movements, List<ValuedPoint> newPoints, boolean isGameOver) {
-                    gameOver.set(isGameOver);
-                }
-            });
+            Driver driver = new Driver(grid.copy(), (movements, newPoints, isGameOver) -> gameOver.set(isGameOver));
             MoveDirection first = null;
             int score = 0;
 
