@@ -20,7 +20,7 @@ public class Utils {
         return new Point(RNG.nextInt(xMax), RNG.nextInt(yMax));
     }
 
-    public static int getFreeSpaces(Grid grid) {
+    public static int getNumberOfFreeSpaces(Grid grid) {
         int num = 0;
         for (int r = 0; r < grid.getRows(); r++) {
             for (int c = 0; c < grid.getCols(); c++) {

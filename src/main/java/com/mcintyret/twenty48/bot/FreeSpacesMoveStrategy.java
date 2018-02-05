@@ -11,6 +11,6 @@ public class FreeSpacesMoveStrategy extends MonteCarloMoveStrategy {
 
     @Override
     protected int scoreGrid(Grid grid) {
-        return grid.getScore() * (1 + Utils.getFreeSpaces(grid));
+        return grid.getScore() * (1 + Utils.getNumberOfFreeSpaces(grid));
     }
 }
